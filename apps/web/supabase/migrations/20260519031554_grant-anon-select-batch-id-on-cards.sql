@@ -1,0 +1,23 @@
+-- Migration: grant anon SELECT on public.cards.batch_id.
+--
+-- 20260510134148_harden-cards-anon-select.sql narrowed anon's column SELECT on
+-- public.cards to (id, card_number, status, price_cents, organization_id) —
+-- the set of columns the /activate loader and verifyCardCode action project.
+-- The narrowing was correct in intent but missed that both code paths *filter*
+-- by batch_id:
+--
+--   apps/web/app/activate/_lib/server/card-activation.loader.ts:132
+--   apps/web/app/activate/_lib/server/card-activation.actions.ts:319
+--     .from('cards').eq('batch_id', batch.id)
+--
+-- PostgreSQL requires SELECT privilege on every column referenced in a query,
+-- including columns in the WHERE clause — not just the projection. With
+-- batch_id excluded from the grant, PostgREST rejects the predicate and the
+-- standard-client lookup returns no row, surfacing as "Card not found" on the
+-- /activate form for any unauthenticated cardholder.
+--
+-- Add batch_id to the anon column grant. The intent of the original narrowing
+-- — keeping claim_token, digital_card_number, buyer_email, purchased_at out of
+-- reach of anonymous REST callers — is preserved.
+
+grant select (batch_id) on public.cards to anon;

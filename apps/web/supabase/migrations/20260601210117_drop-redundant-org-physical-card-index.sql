@@ -1,0 +1,14 @@
+-- Drop the redundant per-org physical card-number index.
+--
+-- 20260508100446_m6-digital-cards.sql originally created
+-- cards_org_physical_number_uniq (organization_id, card_number) for physical
+-- cards. That re-introduced the org-level uniqueness that
+-- 20260110184249_fix-card-number-uniqueness.sql had deliberately replaced with
+-- the per-batch constraint cards_batch_number_unique (batch_id, card_number).
+-- Card numbers legitimately repeat across batches within an org, so the org-level
+-- index is both wrong and redundant.
+--
+-- M6 has since been corrected to no longer create the index. This migration
+-- removes it from any environment where the original M6 already applied (e.g.
+-- the test database). It is a no-op where the index was never created.
+drop index if exists public.cards_org_physical_number_uniq;

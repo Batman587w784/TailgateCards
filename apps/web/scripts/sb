@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Env-aware Supabase CLI wrapper.
+# Usage (from apps/web/): ./scripts/sb <env> <supabase-args...>
+#   env: local | test | prod
+#
+# Uses --db-url so it never touches supabase/.temp/project-ref (the linked state).
+set -euo pipefail
+
+env="${1:?usage: sb <env> <supabase-args...>}"
+shift
+
+case "$env" in
+  local)
+    DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    ;;
+  test|prod)
+    if [[ -z "${DATABASE_URL:-}" ]]; then
+      if [[ ! -f "./.env.$env" ]]; then
+        echo "sb: DATABASE_URL is not set and ./.env.$env was not found (run from apps/web/)" >&2
+        exit 1
+      fi
+
+      DATABASE_URL="$(
+        # shellcheck disable=SC1090
+        . "./.env.$env"
+        printf '%s' "${DATABASE_URL:-}"
+      )"
+    fi
+
+    : "${DATABASE_URL:?DATABASE_URL missing for $env}"
+    ;;
+  *)
+    echo "sb: unknown env '$env' (expected: local | test | prod)" >&2
+    exit 1
+    ;;
+esac
+
+# `--db-url` is a per-subcommand flag in the current CLI (>= v2.x), not a global
+# one, so it must follow the subcommand (e.g. `supabase db push --db-url ...`).
+exec supabase "$@" --db-url "$DATABASE_URL"

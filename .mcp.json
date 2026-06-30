@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "supabase-local": {
+      "command": "apps/web/scripts/mcp-supabase-local.sh"
+    },
+    "supabase-test": {
+      "command": "apps/web/scripts/mcp-supabase-test.sh"
+    },
+    "supabase-prod": {
+      "command": "apps/web/scripts/mcp-supabase-prod.sh"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "subject": "You've Been Invited!",
+  "previewText": "You've been invited to join a team",
+  "heading": "You've Been Invited!",
+  "greeting": "Hello there,",
+  "mainText": "<strong>{{inviter}}</strong> has invited you to join the <strong>{{teamName}}</strong> team on <strong>{{productName}}</strong>. Accept the invitation to create your account and start collaborating.",
+  "expiry": "This invitation will expire in 7 days.",
+  "cta": "Accept Invitation",
+  "copyPasteLink": "Or copy and paste this link into your browser:",
+  "footerReason": "You're receiving this because someone invited you to join their team."
+}

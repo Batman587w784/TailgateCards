@@ -1,0 +1,14 @@
+{
+  "nav": {
+    "redemptions": "Redemptions",
+    "visitorInsights": "Visitor Insights"
+  },
+  "visitorInsights": {
+    "title": "Visitor Insights",
+    "description": "Visitor Insights",
+    "noScans": "No recent scans"
+  },
+  "recentScans": {
+    "title": "Recent Scans"
+  }
+}
