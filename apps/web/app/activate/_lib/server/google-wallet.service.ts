@@ -37,6 +37,7 @@ export interface WalletConfig {
   privateKeyPem: string;
   logoUrl: string;
   appUrl: string;
+  siteUrl: string;
 }
 
 export function readConfig(): WalletConfig {
@@ -61,6 +62,7 @@ export function readConfig(): WalletConfig {
     privateKeyPem: rawKey.replace(/\\n/g, '\n'),
     logoUrl: logoOverride ?? new URL(LOGO_PATH, siteUrl).toString(),
     appUrl: new URL(APP_PATH, siteUrl).toString(),
+    siteUrl,
   };
 }
 
@@ -159,6 +161,11 @@ export function buildGenericObject(
   config: WalletConfig,
   input: BuildSaveUrlInput,
 ) {
+  const shareUrl = new URL(
+    `/share/${encodeURIComponent(input.cardCode)}`,
+    config.siteUrl,
+  ).toString();
+
   return {
     id: `${config.issuerId}.${input.cardCode}`,
     classId: config.classId,
@@ -179,6 +186,11 @@ export function buildGenericObject(
     textModulesData: buildTextModules(input),
     linksModuleData: {
       uris: [
+        {
+          id: 'share',
+          uri: shareUrl,
+          description: 'Share with friends',
+        },
         {
           id: 'app_home',
           uri: config.appUrl,

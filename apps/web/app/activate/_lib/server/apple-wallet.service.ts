@@ -132,7 +132,6 @@ export async function buildPassForCard({
   cardCode,
   cardType,
   organizationName,
-  organizationLogoUrl,
   batchName,
   expiresAt,
   discountCount,
@@ -231,6 +230,17 @@ export async function buildPassForCard({
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
     if (siteUrl) {
+      const shareUrl = new URL(
+        `/share/${encodeURIComponent(cardCode)}`,
+        siteUrl,
+      ).toString();
+      pass.backFields.push({
+        key: 'share',
+        label: 'Share',
+        value: shareUrl,
+        attributedValue: `<a href="${shareUrl}">Share with friends</a>`,
+      });
+
       const appUrl = new URL(APP_PATH, siteUrl).toString();
       pass.backFields.push({
         key: 'app_link',

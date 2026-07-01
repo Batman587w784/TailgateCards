@@ -167,3 +167,97 @@ export async function resolveCard(
 
   return null;
 }
+
+/**
+ * Resolves the buy link a cardholder can share to bring in new buyers.
+ *
+ * A card remembers who sold it via `cards.distributor_id`, so we prefer that
+ * distributor's personal sales link (`/activate/d/{share_slug}`); if the card
+ * wasn't sold through a distributor (or that distributor has no share slug), we
+ * fall back to the organization's own buy link (`/activate/o/{slug}`). Returns a
+ * site-relative path, or null when neither slug is available.
+ */
+export async function resolveCardShareLink(
+  cardCode: string,
+): Promise<string | null> {
+  const admin = getSupabaseServerAdminClient();
+  const upper = cardCode.toUpperCase();
+
+  let organizationId: string | null = null;
+  let distributorId: string | null = null;
+
+  const physical = parsePhysicalCode(upper);
+  if (physical) {
+    const { data: org } = await admin
+      .from('accounts')
+      .select('id')
+      .eq('card_prefix', physical.orgPrefix)
+      .maybeSingle();
+    if (!org) return null;
+
+    const { data: batch } = await admin
+      .from('batches')
+      .select('id')
+      .eq('organization_id', org.id)
+      .eq('prefix', physical.batchPrefix)
+      .maybeSingle();
+    if (!batch) return null;
+
+    const { data: card } = await admin
+      .from('cards')
+      .select('organization_id, distributor_id')
+      .eq('batch_id', batch.id)
+      .eq('card_number', physical.cardNumber)
+      .maybeSingle();
+    if (!card) return null;
+
+    organizationId = card.organization_id;
+    distributorId = card.distributor_id;
+  } else {
+    const digitalNumber = parseDigitalCode(upper);
+    if (digitalNumber === null) return null;
+
+    const { data: card } = await admin
+      .from('cards')
+      .select('organization_id, distributor_id')
+      .eq('card_type', 'digital')
+      .eq('digital_card_number', digitalNumber)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!card) return null;
+
+    organizationId = card.organization_id;
+    distributorId = card.distributor_id;
+  }
+
+  // Prefer the distributor's personal sales link if the card was sold by one.
+  if (distributorId) {
+    const { data: membership } = await admin
+      .from('accounts_memberships')
+      .select('share_slug')
+      .eq('user_id', distributorId)
+      .eq('account_role', 'distributor')
+      .limit(1)
+      .maybeSingle();
+
+    if (membership?.share_slug) {
+      return `/activate/d/${membership.share_slug}`;
+    }
+  }
+
+  // Otherwise share the organization's own buy link.
+  if (organizationId) {
+    const { data: org } = await admin
+      .from('accounts')
+      .select('slug')
+      .eq('id', organizationId)
+      .maybeSingle();
+
+    if (org?.slug) {
+      return `/activate/o/${org.slug}`;
+    }
+  }
+
+  return null;
+}
