@@ -18,7 +18,7 @@ export const WALLET_PASS_COLORS = {
 } as const;
 
 export const FRONT_CHECKOUT_ACTION = 'Show this card at checkout';
-export const FRONT_DISCOUNTS_HINT = 'Tap ⋯ then ⓘ to see all your discounts';
+export const FRONT_DISCOUNTS_HINT = 'Access your discounts';
 
 export const BACK_DISCOUNTS_INTRO =
   'Show this card at checkout. Your offers are listed below.';

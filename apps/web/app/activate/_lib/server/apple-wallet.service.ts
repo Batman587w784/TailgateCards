@@ -33,24 +33,6 @@ function formatExpires(expiresAt: string | null | undefined): string | null {
   return `${month} / ${d.getUTCFullYear()}`;
 }
 
-function buildFrontPrimary(discounts: ResolvedDiscount[], count: number): {
-  label: string;
-  value: string;
-} {
-  if (count === 1 && discounts[0]) {
-    return {
-      label: discounts[0].merchantName,
-      value: discounts[0].title,
-    };
-  }
-
-  const noun = count === 1 ? 'discount' : 'discounts';
-  return {
-    label: '',
-    value: `${count} ${noun} ready to use`,
-  };
-}
-
 const PASS_DESCRIPTION = 'Tailgate Discount Card';
 const APP_PATH = '/dashboard';
 
@@ -187,13 +169,7 @@ export async function buildPassForCard({
     });
 
     if (offerCount > 0 && discounts && discounts.length > 0) {
-      const primary = buildFrontPrimary(discounts, offerCount);
-      pass.primaryFields.push({
-        key: 'primary_offer',
-        label: primary.label,
-        value: primary.value,
-      });
-
+      // Banner shows the merchant logos on its own — no text stamped over them.
       pass.secondaryFields.push({
         key: 'more_offers',
         label: '',
