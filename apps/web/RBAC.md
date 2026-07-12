@@ -4,12 +4,13 @@ This document describes the RBAC system for the Tailgate platform, including rol
 
 ## Platform Roles
 
-The platform has **4 platform roles** and **1 special admin role**:
+The platform has **5 platform roles** and **1 special admin role**:
 
 | Role | Description | Hierarchy Level |
 |------|-------------|-----------------|
 | **Super Admin** | Platform administrator (JWT-based, requires MFA) | Special |
-| **org_admin** | Organization administrator | 1 (highest) |
+| **district_admin** | Campus/District admin, above org_admin (M1/T2) | 0 (highest) |
+| **org_admin** | Organization administrator | 1 |
 | **distributor** | Sells cards on behalf of organization | 2 |
 | **merchant** | Validates discounts, views analytics | 3 |
 | **cardholder** | Default role for NFC card holders | 4 (lowest) |
@@ -17,6 +18,7 @@ The platform has **4 platform roles** and **1 special admin role**:
 ### Role Derivation
 
 - **Super Admin**: Stored in JWT `app_metadata.role = 'super-admin'` + requires AAL2 (MFA)
+- **district_admin**: Derived from a `district_memberships` row (scoped to one district), ranked above all org roles by `get_user_platform_role()`. **Not** a `public.roles` row — the roles table requires `hierarchy_level > 0`, and district admins are not scoped to an *account*. Assignment is super-admin only.
 - **Platform Roles**: Derived from `accounts_memberships.account_role` via `get_user_platform_role()` RPC
 
 ## Role → Page → Model Mappings
@@ -46,6 +48,43 @@ export default async function AdminPage() {
   // ... page content
 }
 ```
+
+---
+
+### District Admin (`district_admin`) — M1/T2
+
+**Access**: All organizations (chapters) + their distributors within the admin's
+single district; district-wide leaderboards/analytics (T3). Assigned by
+super-admin only.
+
+| Page | Route | Models (Tables) |
+|------|-------|-----------------|
+| District dashboard | `/dashboard` (dispatch, T-later) | `districts`, `district_memberships`, `organization_profiles` (scoped by `district_id`) |
+| Chapters / members | (T-later) | `organization_profiles`, `accounts_memberships` in-district |
+
+**Scoping**: a `district_memberships (district_id, account_id)` row links the
+admin's personal account to one district. Helper SQL:
+
+- `public.is_district_admin_of(district_id)` — is the caller admin of that district?
+- `public.get_user_district_id()` — the district the caller administers.
+- `public.org_in_my_district(org_account_id)` — does that org belong to the caller's district?
+
+Additive (permissive) RLS policies grant a district_admin `select` on their
+district's `organization_profiles`, org `accounts`, and org `accounts_memberships`.
+
+**Guard**: Use `requireDistrictAdmin()` from role-guards.
+
+```typescript
+import { requireDistrictAdmin, getUserDistrictId } from '../_lib/server/role-guards';
+
+export default async function DistrictDashboardPage() {
+  await requireDistrictAdmin();
+  const districtId = await getUserDistrictId();
+  // ... page content
+}
+```
+
+**Server Action Wrapper**: `districtAdminAction(enhanceAction(...))`.
 
 ---
 
@@ -255,6 +294,7 @@ apps/web/app/dashboard/(user)/_lib/server/role-guards.ts
 
 ```typescript
 import {
+  isDistrictAdmin,
   isOrgAdmin,
   isDistributor,
   isMerchant,
@@ -279,6 +319,7 @@ const role = await getPlatformRole(client); // Returns PlatformRole
 
 ```typescript
 import {
+  requireDistrictAdmin,
   requireOrgAdmin,
   requireDistributor,
   requireMerchant,
@@ -287,6 +328,7 @@ import {
 } from '../_lib/server/role-guards';
 
 // In page.tsx - returns 404 if role check fails
+await requireDistrictAdmin();
 await requireOrgAdmin();
 await requireDistributor();
 await requireMerchant();
@@ -298,6 +340,7 @@ await requireAnyRole(['org_admin', 'distributor']);
 ```typescript
 import {
   roleAction,
+  districtAdminAction,
   orgAdminAction,
   distributorAction,
   merchantAction
@@ -320,7 +363,8 @@ export const merchAction = merchantAction(enhanceAction(...));
 ```typescript
 import {
   getUserOrganizationId,
-  getUserMerchantId
+  getUserMerchantId,
+  getUserDistrictId
 } from '../_lib/server/role-guards';
 
 // For org_admin: returns their organization account ID
@@ -329,6 +373,9 @@ const orgId = await getUserOrganizationId();
 
 // For merchant: returns their merchant account ID
 const merchantId = await getUserMerchantId();
+
+// For district_admin: returns the district they administer (M1/T2)
+const districtId = await getUserDistrictId();
 ```
 
 ---

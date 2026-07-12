@@ -12,10 +12,11 @@ import { Database } from '~/lib/database.types';
  * Platform roles available in the system.
  *
  * Roles hierarchy (highest to lowest):
- * 1. org_admin - Organization administrator
- * 2. distributor - Sells cards on behalf of organization
- * 3. merchant - Merchant (validates discounts, views analytics with passcode)
- * 4. cardholder - Default role for NFC card holders
+ * 1. district_admin - Campus/District admin (M1/T2), scoped to one district
+ * 2. org_admin - Organization administrator
+ * 3. distributor - Sells cards on behalf of organization
+ * 4. merchant - Merchant (validates discounts, views analytics with passcode)
+ * 5. cardholder - Default role for NFC card holders
  *
  * Note: Super admin is separate (JWT-based with MFA requirement)
  */
@@ -78,6 +79,15 @@ export async function isOrgAdmin(
 }
 
 /**
+ * Check if user is a district admin (Campus/District level, M1/T2).
+ */
+export async function isDistrictAdmin(
+  client: SupabaseClient<Database>,
+): Promise<boolean> {
+  return hasPlatformRole(client, 'district_admin');
+}
+
+/**
  * Check if user is a distributor.
  */
 export async function isDistributor(
@@ -127,6 +137,26 @@ export async function requireOrgAdmin(): Promise<void> {
   const client = getSupabaseServerClient();
 
   if (!(await isOrgAdmin(client))) {
+    notFound();
+  }
+}
+
+/**
+ * Require district_admin role or return 404 (M1/T2).
+ * Use at the top of page.tsx files for district-admin-only routes.
+ *
+ * @example
+ * ```typescript
+ * export default async function DistrictDashboardPage() {
+ *   await requireDistrictAdmin();
+ *   // ... rest of page logic
+ * }
+ * ```
+ */
+export async function requireDistrictAdmin(): Promise<void> {
+  const client = getSupabaseServerClient();
+
+  if (!(await isDistrictAdmin(client))) {
     notFound();
   }
 }
@@ -263,6 +293,15 @@ export function orgAdminAction<Args, Response>(fn: (params: Args) => Response) {
 }
 
 /**
+ * Wrap a server action to require district_admin role (M1/T2).
+ */
+export function districtAdminAction<Args, Response>(
+  fn: (params: Args) => Response,
+) {
+  return roleAction(['district_admin'], fn);
+}
+
+/**
  * Wrap a server action to require distributor role.
  */
 export function distributorAction<Args, Response>(
@@ -352,4 +391,22 @@ export async function getUserMerchantId(): Promise<string | null> {
     .maybeSingle();
 
   return data?.account_id ?? null;
+}
+
+/**
+ * Get the district ID the current user administers (M1/T2).
+ * District admins are scoped to a single district via district_memberships.
+ *
+ * @returns District ID, or null if the user is not a district admin
+ */
+export async function getUserDistrictId(): Promise<string | null> {
+  const client = getSupabaseServerClient();
+
+  const { data, error } = await client.rpc('get_user_district_id');
+
+  if (error) {
+    return null;
+  }
+
+  return data ?? null;
 }

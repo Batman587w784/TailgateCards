@@ -21,6 +21,7 @@ const roleDisplayNames: Record<NonNullable<PlatformRole>, string> = {
   org_admin: 'Organization Admin',
   distributor: 'Distributor',
   merchant: 'Merchant',
+  district_admin: 'District Admin',
 };
 
 const roleVariants: Record<
@@ -31,6 +32,7 @@ const roleVariants: Record<
   org_admin: 'destructive',
   distributor: 'secondary',
   merchant: 'outline',
+  district_admin: 'destructive',
 };
 
 export function UserDetailsCard({

@@ -25,7 +25,8 @@ create type public.platform_role as enum (
   'cardholder',      -- Default role for NFC card holders
   'org_admin',       -- Organization administrator
   'distributor',     -- Sells cards on behalf of organization
-  'merchant'         -- Merchant user (validates discounts, analytics via passcode)
+  'merchant',        -- Merchant user (validates discounts, analytics via passcode)
+  'district_admin'   -- Campus/District admin, above org_admin (M1/T2). Scoped via district_memberships.
 );
 
 comment on type public.platform_role is 'Platform-wide role assigned to each user on their personal account';

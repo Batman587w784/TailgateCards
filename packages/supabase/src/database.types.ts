@@ -2677,6 +2677,7 @@ export type Database = {
         Returns: Database['public']['Enums']['platform_role'];
       };
       get_upper_system_role: { Args: never; Returns: string };
+      get_user_district_id: { Args: never; Returns: string };
       get_user_personal_account_id: { Args: never; Returns: string };
       get_user_platform_role: {
         Args: { target_user_id?: string };
@@ -2929,7 +2930,12 @@ export type Database = {
       notification_type: 'info' | 'warning' | 'error';
       payment_status: 'pending' | 'succeeded' | 'failed';
       payment_type: 'stripe' | 'cash';
-      platform_role: 'cardholder' | 'org_admin' | 'distributor' | 'merchant';
+      platform_role:
+        | 'cardholder'
+        | 'org_admin'
+        | 'distributor'
+        | 'merchant'
+        | 'district_admin';
       redemption_status: 'completed' | 'refunded';
       subscription_item_type: 'flat' | 'per_seat' | 'metered';
       subscription_status:
@@ -3667,7 +3673,13 @@ export const Constants = {
       notification_type: ['info', 'warning', 'error'],
       payment_status: ['pending', 'succeeded', 'failed'],
       payment_type: ['stripe', 'cash'],
-      platform_role: ['cardholder', 'org_admin', 'distributor', 'merchant'],
+      platform_role: [
+        'cardholder',
+        'org_admin',
+        'distributor',
+        'merchant',
+        'district_admin',
+      ],
       redemption_status: ['completed', 'refunded'],
       subscription_item_type: ['flat', 'per_seat', 'metered'],
       subscription_status: [
