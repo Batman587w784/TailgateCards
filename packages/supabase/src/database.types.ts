@@ -2627,6 +2627,10 @@ export type Database = {
           revenue_cents: number
         }[]
       }
+      get_district_naming_preset: {
+        Args: { p_district_id: string }
+        Returns: Database["public"]["Enums"]["district_naming_preset"]
+      }
       get_district_orgs_list: {
         Args: {
           p_date_from?: string
@@ -2826,6 +2830,10 @@ export type Database = {
       }
       get_upper_system_role: { Args: never; Returns: string }
       get_user_district_id: { Args: never; Returns: string }
+      get_user_naming_preset: {
+        Args: never
+        Returns: Database["public"]["Enums"]["district_naming_preset"]
+      }
       get_user_personal_account_id: { Args: never; Returns: string }
       get_user_platform_role: {
         Args: { target_user_id?: string }
