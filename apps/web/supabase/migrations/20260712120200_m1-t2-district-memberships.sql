@@ -2,10 +2,6 @@
 -- get_user_platform_role() update, and additive district_admin RLS.
 -- Copy of schemas/21-district-memberships.sql. Depends on migration
 -- 20260712120100 (enum value) having committed first.
---
--- UNVERIFIED: not applied against a local DB (Docker/local Supabase unavailable
--- this session). Run `pnpm --filter web supabase migrations up` +
--- `pnpm supabase:web:typegen` locally before merge.
 
 /*
  * -------------------------------------------------------
@@ -135,6 +131,26 @@ $$;
 
 grant execute on function public.org_in_my_district(uuid) to authenticated;
 
+-- Does the given user have ANY district membership? SECURITY DEFINER so it can
+-- be used inside get_user_platform_role() (which is security invoker) without
+-- being blocked by RLS on public.accounts — matching the codebase's pattern of
+-- resolving roles through definer helpers.
+create or replace function public.user_is_district_admin(target_user_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.district_memberships dm
+    join public.accounts a on a.id = dm.account_id
+    where a.primary_owner_user_id = target_user_id
+      and a.is_personal_account = true
+  );
+$$;
+
+grant execute on function public.user_is_district_admin(uuid) to authenticated, service_role;
+
 -- ============================================================
 -- Resolve district_admin in get_user_platform_role()
 -- (create-or-replace of the function defined in migration
@@ -150,16 +166,11 @@ security invoker
 set search_path = ''
 as $$
   select coalesce(
-    -- District admins outrank org roles; resolved via district_memberships.
+    -- District admins outrank org roles; resolved via district_memberships
+    -- through a SECURITY DEFINER helper so RLS on accounts can't hide the row.
     (
       select 'district_admin'
-      where exists (
-        select 1
-        from public.district_memberships dm
-        join public.accounts a on a.id = dm.account_id
-        where a.primary_owner_user_id = coalesce(target_user_id, (select auth.uid()))
-          and a.is_personal_account = true
-      )
+      where public.user_is_district_admin(coalesce(target_user_id, (select auth.uid())))
     ),
     (
       select r.name

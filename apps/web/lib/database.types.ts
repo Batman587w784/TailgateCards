@@ -797,6 +797,111 @@ export type Database = {
           },
         ]
       }
+      district_memberships: {
+        Row: {
+          account_id: string
+          created_at: string | null
+          created_by: string | null
+          district_id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          account_id: string
+          created_at?: string | null
+          created_by?: string | null
+          district_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          account_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          district_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "district_memberships_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "district_memberships_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "distributors_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "district_memberships_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "user_account_workspace"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "district_memberships_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "district_memberships_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      districts: {
+        Row: {
+          config: Json
+          created_at: string | null
+          created_by: string | null
+          district_type: Database["public"]["Enums"]["district_type"]
+          id: string
+          is_active: boolean
+          name: string
+          naming_preset: Database["public"]["Enums"]["district_naming_preset"]
+          share_slug: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          district_type?: Database["public"]["Enums"]["district_type"]
+          id?: string
+          is_active?: boolean
+          name: string
+          naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
+          share_slug?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          created_by?: string | null
+          district_type?: Database["public"]["Enums"]["district_type"]
+          id?: string
+          is_active?: boolean
+          name?: string
+          naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
+          share_slug?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           account_id: string
@@ -1343,6 +1448,7 @@ export type Database = {
           contact_phone: string | null
           created_at: string | null
           created_by: string | null
+          district_id: string | null
           id: string
           is_active: boolean
           organization_name: string | null
@@ -1363,6 +1469,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
+          district_id?: string | null
           id?: string
           is_active?: boolean
           organization_name?: string | null
@@ -1383,6 +1490,7 @@ export type Database = {
           contact_phone?: string | null
           created_at?: string | null
           created_by?: string | null
+          district_id?: string | null
           id?: string
           is_active?: boolean
           organization_name?: string | null
@@ -1421,6 +1529,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: true
             referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_profiles_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
             referencedColumns: ["id"]
           },
         ]
@@ -2715,7 +2830,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      install_extensions: { Args: never; Returns: undefined }
       is_aal2: { Args: never; Returns: boolean }
       is_account_owner: { Args: { account_id: string }; Returns: boolean }
       is_account_team_member: {
@@ -2731,6 +2845,10 @@ export type Database = {
         Returns: boolean
       }
       is_current_user_merchant: { Args: never; Returns: boolean }
+      is_district_admin_of: {
+        Args: { target_district_id: string }
+        Returns: boolean
+      }
       is_merchant: { Args: { target_account_id: string }; Returns: boolean }
       is_merchant_account: { Args: { target_id: string }; Returns: boolean }
       is_mfa_compliant: { Args: never; Returns: boolean }
@@ -2759,6 +2877,10 @@ export type Database = {
       }
       org_admin_can_see_merchant: {
         Args: { target_merchant_id: string }
+        Returns: boolean
+      }
+      org_in_my_district: {
+        Args: { target_org_account_id: string }
         Returns: boolean
       }
       org_profile_readable_by_cardholder: {
@@ -2859,6 +2981,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      user_is_district_admin: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       verify_merchant_dashboard_passcode: {
         Args: { passcode: string; target_account_id: string }
         Returns: boolean
@@ -2919,6 +3045,8 @@ export type Database = {
         | "free_item"
         | "bogo"
         | "other"
+      district_naming_preset: "campus_chapter_member" | "district_org_member"
+      district_type: "campus" | "generic"
       notification_channel: "in_app" | "email"
       notification_type: "info" | "warning" | "error"
       payment_status: "pending" | "succeeded" | "failed"
@@ -3219,7 +3347,6 @@ export type Database = {
           id: string
           in_progress_size: number
           key: string
-          metadata: Json | null
           owner_id: string | null
           upload_signature: string
           user_metadata: Json | null
@@ -3231,7 +3358,6 @@ export type Database = {
           id: string
           in_progress_size?: number
           key: string
-          metadata?: Json | null
           owner_id?: string | null
           upload_signature: string
           user_metadata?: Json | null
@@ -3243,7 +3369,6 @@ export type Database = {
           id?: string
           in_progress_size?: number
           key?: string
-          metadata?: Json | null
           owner_id?: string | null
           upload_signature?: string
           user_metadata?: Json | null
@@ -3362,14 +3487,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      allow_any_operation: {
-        Args: { expected_operations: string[] }
-        Returns: boolean
-      }
-      allow_only_operation: {
-        Args: { expected_operation: string }
-        Returns: boolean
-      }
       can_insert_object: {
         Args: { bucketid: string; metadata: Json; name: string; owner: string }
         Returns: undefined
@@ -3659,6 +3776,8 @@ export const Constants = {
         "bogo",
         "other",
       ],
+      district_naming_preset: ["campus_chapter_member", "district_org_member"],
+      district_type: ["campus", "generic"],
       notification_channel: ["in_app", "email"],
       notification_type: ["info", "warning", "error"],
       payment_status: ["pending", "succeeded", "failed"],
