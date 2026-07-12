@@ -2612,6 +2612,43 @@ export type Database = {
         Args: { distributor_account_id: string }
         Returns: number
       }
+      get_district_leaderboard: {
+        Args: {
+          limit_count?: number
+          p_date_from?: string
+          p_date_to?: string
+          p_district_id: string
+        }
+        Returns: {
+          cards_activated: number
+          org_account_id: string
+          organization_name: string
+          rank: number
+          revenue_cents: number
+        }[]
+      }
+      get_district_orgs_list: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_district_id: string
+        }
+        Returns: {
+          cards_activated: number
+          org_account_id: string
+          organization_name: string
+          revenue_cents: number
+          total_cards: number
+        }[]
+      }
+      get_district_stats: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_district_id: string
+        }
+        Returns: Json
+      }
       get_merchant_active_discounts: {
         Args: { merchant_account_id: string }
         Returns: number
