@@ -2948,6 +2948,10 @@ export type Database = {
         Args: { target_org_id: string }
         Returns: boolean
       }
+      register_member: {
+        Args: { p_org_account_id: string; p_phone?: string }
+        Returns: string
+      }
       revoke_nonce: {
         Args: { p_id: string; p_reason?: string }
         Returns: boolean
