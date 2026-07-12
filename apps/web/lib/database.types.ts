@@ -2904,6 +2904,22 @@ export type Database = {
         Args: { account_id: string; user_id: string }
         Returns: boolean
       }
+      list_active_district_orgs: {
+        Args: { p_district_id: string }
+        Returns: {
+          org_account_id: string
+          organization_name: string
+        }[]
+      }
+      list_active_districts: {
+        Args: never
+        Returns: {
+          district_type: Database["public"]["Enums"]["district_type"]
+          id: string
+          name: string
+          naming_preset: Database["public"]["Enums"]["district_naming_preset"]
+        }[]
+      }
       log_activity: {
         Args: {
           p_actor_id?: string
