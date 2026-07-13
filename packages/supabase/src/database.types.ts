@@ -2948,6 +2948,15 @@ export type Database = {
         Args: { target_org_id: string }
         Returns: boolean
       }
+      reassign_member: {
+        Args: {
+          p_from_org: string
+          p_move_sales?: boolean
+          p_to_org: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       register_member: {
         Args: { p_org_account_id: string; p_phone?: string }
         Returns: string
