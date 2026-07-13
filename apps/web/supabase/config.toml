@@ -75,6 +75,28 @@ max_frequency = "1m0s"
 otp_length = 8
 otp_expiry = 3600
 
+# Phone / SMS auth (M1/T6 self-signup). No SMS provider is wired for local dev;
+# `test_otp` maps phone numbers to fixed codes so `signInWithOtp({ phone })` +
+# `verifyOtp` work locally WITHOUT sending real SMS. Production must configure
+# Twilio ([auth.sms.twilio]) and remove/ignore test_otp.
+[auth.sms]
+enable_signup = true
+enable_confirmations = false
+
+# Dummy provider so GoTrue ENABLES phone login locally. Real SMS is never sent
+# for numbers listed in [auth.sms.test_otp]; those return their fixed code.
+# Production must replace this with real Twilio credentials (via env()).
+[auth.sms.twilio]
+enabled = true
+account_sid = "test_account_sid"
+message_service_sid = "test_message_service_sid"
+auth_token = "test_auth_token"
+
+[auth.sms.test_otp]
+15555550100 = "123456"
+15555550101 = "123456"
+15555550102 = "123456"
+
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin`, `notion`, `twitch`,
 # `twitter`, `slack`, `spotify`, `workos`, `zoom`.
