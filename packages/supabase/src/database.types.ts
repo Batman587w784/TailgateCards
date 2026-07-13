@@ -902,6 +902,42 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          entity_id: string
+          id: string
+          level: Database["public"]["Enums"]["goal_level"]
+          target_cards: number | null
+          target_cents: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          entity_id: string
+          id?: string
+          level: Database["public"]["Enums"]["goal_level"]
+          target_cards?: number | null
+          target_cents?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string
+          id?: string
+          level?: Database["public"]["Enums"]["goal_level"]
+          target_cards?: number | null
+          target_cents?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           account_id: string
@@ -2275,6 +2311,13 @@ export type Database = {
         Args: { target_team_account_id: string; target_user_id: string }
         Returns: boolean
       }
+      can_manage_goal: {
+        Args: {
+          p_entity_id: string
+          p_level: Database["public"]["Enums"]["goal_level"]
+        }
+        Returns: boolean
+      }
       cardholder_can_see_merchant: {
         Args: { target_merchant_id: string }
         Returns: boolean
@@ -2371,6 +2414,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      delete_goal: {
+        Args: {
+          p_entity_id: string
+          p_level: Database["public"]["Enums"]["goal_level"]
+        }
+        Returns: undefined
       }
       enqueue_wallet_sync_card: {
         Args: { p_card_id: string; p_reason: string }
@@ -2512,6 +2562,9 @@ export type Database = {
           cards_sold: number
           chapter_name: string
           dollars_raised_cents: number
+          goal_progress: number
+          goal_target_cards: number
+          goal_target_cents: number
           org_account_id: string
           rank: number
         }[]
@@ -2526,6 +2579,9 @@ export type Database = {
           cards_sold: number
           display_name: string
           dollars_raised_cents: number
+          goal_progress: number
+          goal_target_cards: number
+          goal_target_cents: number
           rank: number
         }[]
       }
@@ -2543,6 +2599,9 @@ export type Database = {
           cards_sold: number
           display_name: string
           dollars_raised_cents: number
+          goal_progress: number
+          goal_target_cards: number
+          goal_target_cents: number
           rank: number
         }[]
       }
@@ -2683,6 +2742,10 @@ export type Database = {
           p_date_to?: string
           p_district_id: string
         }
+        Returns: Json
+      }
+      get_goals_for_checkout: {
+        Args: { p_member_account_id?: string; p_org_account_id: string }
         Returns: Json
       }
       get_merchant_active_discounts: {
@@ -2880,6 +2943,15 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: string
       }
+      goal_progress: {
+        Args: {
+          p_cards: number
+          p_raised_cents: number
+          p_target_cards: number
+          p_target_cents: number
+        }
+        Returns: number
+      }
       has_active_subscription: {
         Args: { target_account_id: string }
         Returns: boolean
@@ -3007,6 +3079,15 @@ export type Database = {
       revoke_nonce: {
         Args: { p_id: string; p_reason?: string }
         Returns: boolean
+      }
+      set_goal: {
+        Args: {
+          p_entity_id: string
+          p_level: Database["public"]["Enums"]["goal_level"]
+          p_target_cards?: number
+          p_target_cents?: number
+        }
+        Returns: string
       }
       set_merchant_dashboard_passcode: {
         Args: { passcode: string; target_account_id: string }
@@ -3164,6 +3245,7 @@ export type Database = {
         | "other"
       district_naming_preset: "campus_chapter_member" | "district_org_member"
       district_type: "campus" | "generic"
+      goal_level: "chapter" | "member"
       notification_channel: "in_app" | "email"
       notification_type: "info" | "warning" | "error"
       payment_status: "pending" | "succeeded" | "failed"
@@ -3895,6 +3977,7 @@ export const Constants = {
       ],
       district_naming_preset: ["campus_chapter_member", "district_org_member"],
       district_type: ["campus", "generic"],
+      goal_level: ["chapter", "member"],
       notification_channel: ["in_app", "email"],
       notification_type: ["info", "warning", "error"],
       payment_status: ["pending", "succeeded", "failed"],
