@@ -2931,6 +2931,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      install_extensions: { Args: never; Returns: undefined }
       is_aal2: { Args: never; Returns: boolean }
       is_account_owner: { Args: { account_id: string }; Returns: boolean }
       is_account_team_member: {
@@ -3013,6 +3014,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      register_general_signup: {
+        Args: { p_email?: string; p_name: string }
+        Returns: undefined
       }
       register_member: {
         Args: { p_org_account_id: string; p_phone?: string }

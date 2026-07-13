@@ -52,6 +52,8 @@ import {
 import {
   JoinContactSchema,
   type JoinContactFormData,
+  JoinGeneralSchema,
+  type JoinGeneralFormData,
   normalizePhoneE164,
 } from '../_lib/join-start.schema';
 
@@ -60,8 +62,11 @@ type Step =
   | 'pick-campus'
   | 'pick-chapter'
   | 'contact'
+  | 'general-contact'
   | 'verify'
   | 'done';
+
+type Flow = 'campus' | 'general';
 
 interface Selection {
   districtId: string;
@@ -69,6 +74,7 @@ interface Selection {
   namingPreset: NamingPreset;
   orgId: string;
   orgName: string;
+  name: string;
   phone: string;
   email: string;
 }
@@ -79,15 +85,23 @@ const EMPTY: Selection = {
   namingPreset: DEFAULT_NAMING_PRESET,
   orgId: '',
   orgName: '',
+  name: '',
   phone: '',
   email: '',
 };
+
+function codeError(err: unknown): string {
+  return typeof err === 'string'
+    ? err
+    : 'Could not send your code. Check the number and try again.';
+}
 
 export function JoinStartFlow() {
   const supabase = useSupabase();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('campus-question');
+  const [flow, setFlow] = useState<Flow>('campus');
   const [selection, setSelection] = useState<Selection>(EMPTY);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -133,31 +147,48 @@ export function JoinStartFlow() {
     defaultValues: { phone: '', email: '' },
   });
 
-  // --- Step: contact -> send OTP ---
+  const generalForm = useForm<JoinGeneralFormData>({
+    resolver: zodResolver(JoinGeneralSchema),
+    defaultValues: { name: '', phone: '', email: '' },
+  });
+
+  const sendCode = async (phone: string) => {
+    await signInWithOtp.mutateAsync({ phone });
+    setStep('verify');
+  };
+
+  // --- Step: campus contact -> send OTP ---
   const onContactSubmit = async (values: JoinContactFormData) => {
     setError(null);
-
     const phone = normalizePhoneE164(values.phone);
 
     try {
-      await signInWithOtp.mutateAsync({ phone });
-
-      setSelection((prev) => ({
-        ...prev,
-        phone,
-        email: values.email ?? '',
-      }));
-      setStep('verify');
+      setSelection((prev) => ({ ...prev, phone, email: values.email ?? '' }));
+      await sendCode(phone);
     } catch (err) {
-      setError(
-        typeof err === 'string'
-          ? err
-          : 'Could not send your code. Check the number and try again.',
-      );
+      setError(codeError(err));
     }
   };
 
-  // --- Step: verify OTP -> register_member ---
+  // --- Step: general (no campus) contact -> send OTP ---
+  const onGeneralSubmit = async (values: JoinGeneralFormData) => {
+    setError(null);
+    const phone = normalizePhoneE164(values.phone);
+
+    try {
+      setSelection((prev) => ({
+        ...prev,
+        phone,
+        name: values.name,
+        email: values.email ?? '',
+      }));
+      await sendCode(phone);
+    } catch (err) {
+      setError(codeError(err));
+    }
+  };
+
+  // --- Step: verify OTP -> register (member or general) ---
   const onVerify = async () => {
     setError(null);
 
@@ -168,10 +199,16 @@ export function JoinStartFlow() {
         type: 'sms',
       });
 
-      const { error: registerError } = await supabase.rpc('register_member', {
-        p_org_account_id: selection.orgId,
-        p_phone: selection.phone,
-      });
+      const { error: registerError } =
+        flow === 'general'
+          ? await supabase.rpc('register_general_signup', {
+              p_name: selection.name,
+              p_email: selection.email || undefined,
+            })
+          : await supabase.rpc('register_member', {
+              p_org_account_id: selection.orgId,
+              p_phone: selection.phone,
+            });
 
       if (registerError) throw registerError;
 
@@ -217,7 +254,10 @@ export function JoinStartFlow() {
             <div className="flex gap-3">
               <Button
                 className="flex-1"
-                onClick={() => setStep('pick-campus')}
+                onClick={() => {
+                  setFlow('campus');
+                  setStep('pick-campus');
+                }}
                 data-test="join-campus-yes"
               >
                 Yes
@@ -225,14 +265,18 @@ export function JoinStartFlow() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('pick-campus')}
+                onClick={() => {
+                  setFlow('general');
+                  setStep('general-contact');
+                }}
+                data-test="join-campus-no"
               >
-                Not sure
+                No
               </Button>
             </div>
             <p className="text-muted-foreground text-xs">
-              Pick your organization on the next screen. If you were sent an
-              invite link, use that instead.
+              Choose your campus and chapter next. If you were sent an invite
+              link, use that instead.
             </p>
           </div>
         </If>
@@ -421,6 +465,102 @@ export function JoinStartFlow() {
           </Form>
         </If>
 
+        {/* Step 4b — General signup (no campus): name + phone + email */}
+        <If condition={step === 'general-contact'}>
+          <Form {...generalForm}>
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={generalForm.handleSubmit(onGeneralSubmit)}
+            >
+              <p className="text-muted-foreground text-sm">
+                No problem — sign up and we&apos;ll get you set up.
+              </p>
+
+              <FormField
+                control={generalForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Jane Doe"
+                        autoComplete="name"
+                        data-test="join-general-name"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={generalForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone number</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="+1 555 555 0100"
+                        data-test="join-general-phone"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      We&apos;ll text you a code to confirm it&apos;s you.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={generalForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep('campus-question')}
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={isSending}
+                  data-test="join-general-send-code"
+                >
+                  <If condition={isSending} fallback="Send code">
+                    <Spinner className="mr-2 h-4 w-4" />
+                    Sending…
+                  </If>
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </If>
+
         {/* Step 5 — Verify OTP */}
         <If condition={step === 'verify'}>
           <div className="flex flex-col items-center gap-4">
@@ -443,7 +583,11 @@ export function JoinStartFlow() {
             >
               <If
                 condition={isVerifying}
-                fallback={`Verify & join ${selection.orgName}`}
+                fallback={
+                  flow === 'general'
+                    ? 'Verify & finish'
+                    : `Verify & join ${selection.orgName}`
+                }
               >
                 <Spinner className="mr-2 h-4 w-4" />
                 Verifying…
@@ -453,7 +597,9 @@ export function JoinStartFlow() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setStep('contact')}
+              onClick={() =>
+                setStep(flow === 'general' ? 'general-contact' : 'contact')
+              }
             >
               Use a different number
             </Button>
@@ -464,7 +610,9 @@ export function JoinStartFlow() {
         <If condition={step === 'done'}>
           <div className="flex flex-col items-center gap-3 text-center">
             <p className="text-sm font-medium">
-              You&apos;re in — welcome to {selection.orgName}!
+              {flow === 'general'
+                ? "You're all set — welcome to Tailgate!"
+                : `You're in — welcome to ${selection.orgName}!`}
             </p>
             <Button asChild>
               <Link href={pathsConfig.app.home}>Go to your dashboard</Link>

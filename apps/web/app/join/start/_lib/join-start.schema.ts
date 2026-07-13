@@ -18,6 +18,20 @@ export const JoinContactSchema = z.object({
 
 export type JoinContactFormData = z.infer<typeof JoinContactSchema>;
 
+/**
+ * M3 / P0-2 — general signup ("No, not on a campus"): name required, no
+ * campus/chapter. Phone is still the OTP identity.
+ */
+export const JoinGeneralSchema = z.object({
+  name: z.string().min(1, 'Enter your name'),
+  phone: z
+    .string()
+    .min(8, 'Enter a valid phone number (include country code, e.g. +1…)'),
+  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
+});
+
+export type JoinGeneralFormData = z.infer<typeof JoinGeneralSchema>;
+
 /** Normalize a user-entered phone to E.164 (`+` followed by digits). */
 export function normalizePhoneE164(input: string): string {
   const digits = input.replace(/\D/g, '');
