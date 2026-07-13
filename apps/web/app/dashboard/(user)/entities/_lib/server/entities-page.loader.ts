@@ -34,6 +34,7 @@ export type OrganizationWithAccount = {
     email: string | null;
     slug: string | null;
     created_at: string | null;
+    picture_url: string | null;
   };
 };
 
@@ -237,7 +238,7 @@ export async function loadOrganizations(
       created_at,
       primary_contact_name,
       primary_contact_email,
-      account:accounts!inner(id, name, email, slug, created_at)
+      account:accounts!inner(id, name, email, slug, created_at, picture_url)
     `,
     )
     .order(sortColumn, { ascending: sortOrder === 'asc' });
@@ -289,6 +290,8 @@ export type DistrictWithStats = {
   state: string | null;
   city: string | null;
   share_slug: string | null;
+  logo_url: string | null;
+  standardize_logos: boolean;
   created_at: string | null;
   total_revenue: number;
   chapter_count: number;
@@ -339,7 +342,7 @@ export async function loadDistricts(
   let queryBuilder = client
     .from('districts')
     .select(
-      'id, name, district_type, naming_preset, is_active, state, city, share_slug, created_at',
+      'id, name, district_type, naming_preset, is_active, state, city, share_slug, logo_url, standardize_logos, created_at',
     )
     .order(sortColumn, { ascending: sortOrder === 'asc' });
 

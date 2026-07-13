@@ -103,6 +103,24 @@ class AdminDistrictsService {
     }
   }
 
+  async updateDistrictLogo(districtId: string, logoUrl: string) {
+    const { error } = await this.adminClient
+      .from('districts')
+      .update({ logo_url: logoUrl })
+      .eq('id', districtId);
+
+    if (error) throw error;
+  }
+
+  async setStandardizeLogos(districtId: string, standardize: boolean) {
+    const { error } = await this.adminClient
+      .from('districts')
+      .update({ standardize_logos: standardize })
+      .eq('id', districtId);
+
+    if (error) throw error;
+  }
+
   async getDistrictChapterIds(districtId: string) {
     const { data, error } = await this.adminClient
       .from('organization_profiles')

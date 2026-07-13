@@ -110,6 +110,25 @@ export const AssignChaptersSchema = z.object({
 
 export type AssignChaptersSchemaType = z.infer<typeof AssignChaptersSchema>;
 
+// District logo standardization — M3 / P0-3
+export const UpdateDistrictLogoSchema = z.object({
+  districtId: z.string().uuid('Invalid district ID'),
+  logoUrl: z.string().url(),
+});
+
+export type UpdateDistrictLogoSchemaType = z.infer<
+  typeof UpdateDistrictLogoSchema
+>;
+
+export const ToggleStandardizeLogosSchema = z.object({
+  districtId: z.string().uuid('Invalid district ID'),
+  standardize: z.boolean(),
+});
+
+export type ToggleStandardizeLogosSchemaType = z.infer<
+  typeof ToggleStandardizeLogosSchema
+>;
+
 // Merchant schemas
 export const CreateMerchantSchema = z.object({
   merchantName: z.string().min(1, 'Merchant name is required'),

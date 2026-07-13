@@ -14,7 +14,9 @@ import {
   AssignChaptersSchema,
   CreateCampusSchema,
   ToggleCampusStatusSchema,
+  ToggleStandardizeLogosSchema,
   UpdateCampusSchema,
+  UpdateDistrictLogoSchema,
 } from '../schemas/entity.schema';
 import { createAdminDistrictsService } from './services/admin-districts.service';
 
@@ -118,6 +120,44 @@ export const assignChaptersAction = enhanceAction(
     }
   },
   { schema: AssignChaptersSchema },
+);
+
+export const updateDistrictLogoAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    try {
+      await getService().updateDistrictLogo(data.districtId, data.logoUrl);
+      revalidatePath('/dashboard/entities');
+
+      return { success: true as const };
+    } catch (error) {
+      return {
+        success: false as const,
+        error: errorMessage(error, 'Failed to update district logo'),
+      };
+    }
+  },
+  { schema: UpdateDistrictLogoSchema },
+);
+
+export const toggleStandardizeLogosAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    try {
+      await getService().setStandardizeLogos(data.districtId, data.standardize);
+      revalidatePath('/dashboard/entities');
+
+      return { success: true as const };
+    } catch (error) {
+      return {
+        success: false as const,
+        error: errorMessage(error, 'Failed to update logo standardization'),
+      };
+    }
+  },
+  { schema: ToggleStandardizeLogosSchema },
 );
 
 export const getDistrictChaptersAction = enhanceAction(

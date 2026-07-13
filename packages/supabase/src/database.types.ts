@@ -869,9 +869,11 @@ export type Database = {
           district_type: Database["public"]["Enums"]["district_type"]
           id: string
           is_active: boolean
+          logo_url: string | null
           name: string
           naming_preset: Database["public"]["Enums"]["district_naming_preset"]
           share_slug: string | null
+          standardize_logos: boolean
           state: string | null
           updated_at: string | null
           updated_by: string | null
@@ -884,9 +886,11 @@ export type Database = {
           district_type?: Database["public"]["Enums"]["district_type"]
           id?: string
           is_active?: boolean
+          logo_url?: string | null
           name: string
           naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
           share_slug?: string | null
+          standardize_logos?: boolean
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -899,9 +903,11 @@ export type Database = {
           district_type?: Database["public"]["Enums"]["district_type"]
           id?: string
           is_active?: boolean
+          logo_url?: string | null
           name?: string
           naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
           share_slug?: string | null
+          standardize_logos?: boolean
           state?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -2705,6 +2711,10 @@ export type Database = {
       get_district_total_revenue: {
         Args: { p_district_id: string }
         Returns: number
+      }
+      get_effective_org_logo: {
+        Args: { p_org_account_id: string }
+        Returns: string
       }
       get_goals_for_checkout: {
         Args: { p_member_account_id?: string; p_org_account_id: string }

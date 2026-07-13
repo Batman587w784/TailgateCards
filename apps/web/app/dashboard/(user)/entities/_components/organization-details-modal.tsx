@@ -7,6 +7,7 @@ import { CalendarDays, Mail, Pencil, Save, TicketPercent } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { useSupabase } from '@kit/supabase/hooks/use-supabase';
 import { Button } from '@kit/ui/button';
 import {
   Dialog,
@@ -35,6 +36,8 @@ import {
   resendEntityInviteAction,
   updateOrganizationAction,
 } from '../_lib/server/entities-server-actions';
+import { uploadMerchantLogo } from '../_lib/utils/upload-merchant-logo';
+import { BusinessLogoUpload } from './business-logo-upload';
 import { CityAutocomplete } from './city-autocomplete';
 import { MerchantMultiSelect } from './merchant-multi-select';
 import { StateAutocomplete } from './state-autocomplete';
@@ -68,9 +71,11 @@ export function OrganizationDetailsModal({
   merchants,
   currentPartnerIds,
 }: OrganizationDetailsModalProps) {
+  const client = useSupabase();
   const [pending, startTransition] = useTransition();
   const [resendPending, startResendTransition] = useTransition();
   const [isEditing, setIsEditing] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(UpdateOrganizationFormSchema),
@@ -111,6 +116,17 @@ export function OrganizationDetailsModal({
         });
 
         if (result.success) {
+          if (logoFile) {
+            try {
+              await uploadMerchantLogo(client, logoFile, organization.account_id);
+            } catch {
+              toast.error('Organization saved, but the logo upload failed.');
+              setIsEditing(false);
+              onOpenChange(false);
+              return;
+            }
+          }
+
           toast.success('Organization updated successfully');
           setIsEditing(false);
           onOpenChange(false);
@@ -447,6 +463,14 @@ export function OrganizationDetailsModal({
               </div>
 
               <Separator />
+
+              {/* Org logo (edit mode) — M3 / P0-3 */}
+              {isEditing && (
+                <BusinessLogoUpload
+                  onFileSelect={setLogoFile}
+                  initialPreview={organization.account?.picture_url ?? null}
+                />
+              )}
 
               {/* Status Row */}
               <FormField

@@ -7,6 +7,7 @@ import { Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { useSupabase } from '@kit/supabase/hooks/use-supabase';
 import { Button } from '@kit/ui/button';
 import { Checkbox } from '@kit/ui/checkbox';
 import {
@@ -44,8 +45,11 @@ import {
 import {
   assignChaptersAction,
   getDistrictChaptersAction,
+  toggleStandardizeLogosAction,
   updateCampusAction,
 } from '../_lib/server/districts-server-actions';
+import { uploadDistrictLogo } from '../_lib/utils/upload-district-logo';
+import { BusinessLogoUpload } from './business-logo-upload';
 import { CityAutocomplete } from './city-autocomplete';
 import { StateAutocomplete } from './state-autocomplete';
 
@@ -72,8 +76,11 @@ export function DistrictDetailsModal({
   onOpenChange,
   organizations,
 }: DistrictDetailsModalProps) {
+  const client = useSupabase();
   const [pending, startTransition] = useTransition();
   const [chapterIds, setChapterIds] = useState<string[]>([]);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [standardize, setStandardize] = useState(district.standardize_logos);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
@@ -138,6 +145,29 @@ export function DistrictDetailsModal({
 
       if (!assignResult.success) {
         toast.error(assignResult.error ?? 'Failed to assign chapters');
+        return;
+      }
+
+      // Upload a new district logo if one was chosen.
+      if (logoFile) {
+        try {
+          await uploadDistrictLogo(client, logoFile, district.id);
+        } catch {
+          toast.error('Failed to upload district logo');
+          return;
+        }
+      }
+
+      // Persist the "standardize logos" flag.
+      const standardizeResult = await toggleStandardizeLogosAction({
+        districtId: district.id,
+        standardize,
+      });
+
+      if (!standardizeResult.success) {
+        toast.error(
+          standardizeResult.error ?? 'Failed to update logo standardization',
+        );
         return;
       }
 
@@ -249,6 +279,28 @@ export function DistrictDetailsModal({
                 </FormItem>
               )}
             />
+
+            <Separator />
+
+            <div className="flex flex-col gap-3">
+              {/* REVIEW: BusinessLogoUpload renders a "Business Logo" heading;
+                  a campus-specific label is a small cosmetic follow-up. */}
+              <BusinessLogoUpload
+                onFileSelect={setLogoFile}
+                initialPreview={district.logo_url}
+              />
+              <label className="flex cursor-pointer items-start gap-2 text-sm">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={standardize}
+                  onCheckedChange={(checked) => setStandardize(checked === true)}
+                />
+                <span>
+                  Standardize logos — all chapters in this campus display this
+                  campus&apos;s logo instead of their own.
+                </span>
+              </label>
+            </div>
 
             <Separator />
 
