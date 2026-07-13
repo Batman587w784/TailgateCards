@@ -26,6 +26,7 @@ export interface PublicLeaderboardProps {
   totalRaisedCents: number;
   totalCardsSold: number;
   chapterCount: number;
+  campusGoalProgress: number | null;
   chapters: PublicRow[];
   members: PublicRow[];
 }
@@ -104,6 +105,14 @@ export function PublicLeaderboard(props: PublicLeaderboardProps) {
         </div>
         <ShareButton title={`${props.campusName} leaderboard`} />
       </div>
+
+      {props.campusGoalProgress !== null &&
+      props.campusGoalProgress !== undefined ? (
+        <Progress
+          value={Math.min(100, Math.round(props.campusGoalProgress * 100))}
+          className="h-2.5"
+        />
+      ) : null}
 
       <Board
         title={`${labels.organization.singular} standings`}

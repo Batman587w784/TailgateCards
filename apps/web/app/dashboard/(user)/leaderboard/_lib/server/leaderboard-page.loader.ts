@@ -23,6 +23,8 @@ export interface CampusSummary {
   total_raised_cents: number;
   total_cards_sold: number;
   chapter_count: number;
+  goal_target_cents: number | null;
+  goal_progress: number | null;
 }
 
 export interface ChapterRow {

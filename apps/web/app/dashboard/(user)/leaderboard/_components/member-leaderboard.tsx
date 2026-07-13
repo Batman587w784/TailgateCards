@@ -130,9 +130,13 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
               {formatUsdFromCents(summary.total_raised_cents)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-muted-foreground text-sm">
-            {summary.total_cards_sold} cards sold across {summary.chapter_count}{' '}
-            {labels.organization.plural.toLowerCase()}
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <span className="text-muted-foreground">
+              {summary.total_cards_sold} cards sold across{' '}
+              {summary.chapter_count}{' '}
+              {labels.organization.plural.toLowerCase()}
+            </span>
+            <GoalProgress progress={summary.goal_progress} />
           </CardContent>
         </Card>
 

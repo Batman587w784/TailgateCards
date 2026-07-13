@@ -67,6 +67,7 @@ async function PublicLeaderboardPage({ params }: PageProps) {
     total_raised_cents: number;
     total_cards_sold: number;
     chapter_count: number;
+    goal_progress: number | null;
   } | null;
 
   const chapters: PublicRow[] = (chaptersRes.data ?? []).map((c) => ({
@@ -92,6 +93,7 @@ async function PublicLeaderboardPage({ params }: PageProps) {
       totalRaisedCents={summary?.total_raised_cents ?? 0}
       totalCardsSold={summary?.total_cards_sold ?? 0}
       chapterCount={summary?.chapter_count ?? 0}
+      campusGoalProgress={summary?.goal_progress ?? null}
       chapters={chapters}
       members={members}
     />
