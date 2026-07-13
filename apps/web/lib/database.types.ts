@@ -2506,6 +2506,29 @@ export type Database = {
         }
         Returns: Json
       }
+      get_campus_chapter_leaderboard: {
+        Args: { p_district_id: string }
+        Returns: {
+          cards_sold: number
+          chapter_name: string
+          dollars_raised_cents: number
+          org_account_id: string
+          rank: number
+        }[]
+      }
+      get_campus_leaderboard_summary: {
+        Args: { p_district_id: string }
+        Returns: Json
+      }
+      get_campus_member_leaderboard: {
+        Args: { p_district_id: string; p_limit?: number }
+        Returns: {
+          cards_sold: number
+          display_name: string
+          dollars_raised_cents: number
+          rank: number
+        }[]
+      }
       get_cardholder_last_used: {
         Args: { cardholder_account_id: string }
         Returns: string
@@ -2513,6 +2536,15 @@ export type Database = {
       get_cardholder_total_redemptions: {
         Args: { cardholder_account_id: string }
         Returns: number
+      }
+      get_chapter_member_leaderboard: {
+        Args: { p_limit?: number; p_org_account_id: string }
+        Returns: {
+          cards_sold: number
+          display_name: string
+          dollars_raised_cents: number
+          rank: number
+        }[]
       }
       get_config: { Args: never; Returns: Json }
       get_digital_card_for_activation: {
@@ -2712,6 +2744,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_my_leaderboard_position: { Args: never; Returns: Json }
       get_nonce_status: { Args: { p_id: string }; Returns: Json }
       get_org_admin_card_stats: {
         Args: {
@@ -2828,6 +2861,14 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["platform_role"]
       }
+      get_public_campus: {
+        Args: { p_share_slug: string }
+        Returns: {
+          campus_name: string
+          district_id: string
+          naming_preset: Database["public"]["Enums"]["district_naming_preset"]
+        }[]
+      }
       get_upper_system_role: { Args: never; Returns: string }
       get_user_district_id: { Args: never; Returns: string }
       get_user_naming_preset: {
@@ -2875,6 +2916,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      install_extensions: { Args: never; Returns: undefined }
       is_aal2: { Args: never; Returns: boolean }
       is_account_owner: { Args: { account_id: string }; Returns: boolean }
       is_account_team_member: {
@@ -2948,6 +2990,7 @@ export type Database = {
         Args: { target_org_id: string }
         Returns: boolean
       }
+      public_display_name: { Args: { p_name: string }; Returns: string }
       reassign_member: {
         Args: {
           p_from_org: string
