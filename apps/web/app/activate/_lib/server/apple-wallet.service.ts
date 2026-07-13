@@ -132,7 +132,6 @@ export async function buildPassForCard({
   cardCode,
   cardType,
   organizationName,
-  organizationLogoUrl,
   batchName,
   expiresAt,
   discountCount,
