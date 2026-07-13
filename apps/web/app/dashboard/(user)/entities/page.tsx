@@ -13,6 +13,7 @@ import { EntitiesTabs } from './_components/entities-tabs';
 import {
   loadCardholders,
   loadDistributors,
+  loadDistricts,
   loadMerchants,
   loadMerchantsForSelect,
   loadOrganizations,
@@ -59,6 +60,7 @@ export default async function EntitiesPage({
     merchants,
     distributors,
     cardholders,
+    districts,
     organizationsForSelect,
     merchantsForSelect,
   ] = await Promise.all([
@@ -66,6 +68,7 @@ export default async function EntitiesPage({
     loadMerchants(adminClient, page, pageSize, query, sortBy, sortOrder),
     loadDistributors(adminClient, page, pageSize, query, sortBy, sortOrder),
     loadCardholders(adminClient, page, pageSize, query, sortBy, sortOrder),
+    loadDistricts(adminClient, page, pageSize, query, sortBy, sortOrder),
     loadOrganizationsForSelect(adminClient),
     loadMerchantsForSelect(adminClient),
   ]);
@@ -81,6 +84,7 @@ export default async function EntitiesPage({
           merchants={merchants}
           distributors={distributors}
           cardholders={cardholders}
+          districts={districts}
           organizationsForSelect={organizationsForSelect}
           merchantsForSelect={merchantsForSelect}
           page={page}

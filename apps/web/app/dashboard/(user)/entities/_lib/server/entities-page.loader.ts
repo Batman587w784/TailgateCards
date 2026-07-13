@@ -278,6 +278,107 @@ export async function loadOrganizations(
   };
 }
 
+// ── Districts (Campus) — M3 / P0-1 ──────────────────────────────────────────
+
+export type DistrictWithStats = {
+  id: string;
+  name: string;
+  district_type: 'campus' | 'generic';
+  naming_preset: string;
+  is_active: boolean;
+  state: string | null;
+  city: string | null;
+  share_slug: string | null;
+  created_at: string | null;
+  total_revenue: number;
+  chapter_count: number;
+};
+
+const districtSortColumns: Record<string, string> = {
+  name: 'name',
+  is_active: 'is_active',
+  created_at: 'created_at',
+  state: 'state',
+  city: 'city',
+};
+
+export async function loadDistricts(
+  client: SupabaseClient<Database>,
+  page: number = 1,
+  pageSize: number = DEFAULT_PAGE_SIZE,
+  query?: string,
+  sortBy?: string,
+  sortOrder: 'asc' | 'desc' = 'desc',
+) {
+  let countQuery = client
+    .from('districts')
+    .select('id', { count: 'exact', head: true });
+
+  if (query) {
+    countQuery = countQuery.ilike('name', `%${query}%`);
+  }
+
+  const { count: totalCount, error: countError } = await countQuery;
+  if (countError) throw countError;
+
+  const safeCount = totalCount ?? 0;
+  const pageCount = Math.ceil(safeCount / pageSize);
+
+  if (page > pageCount && pageCount > 0) {
+    return { data: [], count: safeCount, pageCount };
+  }
+  if (safeCount === 0) {
+    return { data: [], count: 0, pageCount: 0 };
+  }
+
+  const sortColumn =
+    sortBy && districtSortColumns[sortBy]
+      ? districtSortColumns[sortBy]
+      : 'created_at';
+
+  let queryBuilder = client
+    .from('districts')
+    .select(
+      'id, name, district_type, naming_preset, is_active, state, city, share_slug, created_at',
+    )
+    .order(sortColumn, { ascending: sortOrder === 'asc' });
+
+  if (query) {
+    queryBuilder = queryBuilder.ilike('name', `%${query}%`);
+  }
+
+  const { data, error } = await queryBuilder.range(
+    (page - 1) * pageSize,
+    page * pageSize - 1,
+  );
+
+  if (error) throw error;
+
+  const withStats = await Promise.all(
+    (data ?? []).map(async (d) => {
+      const [{ data: revenue }, { count: chapterCount }] = await Promise.all([
+        client.rpc('get_district_total_revenue', { p_district_id: d.id }),
+        client
+          .from('organization_profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('district_id', d.id),
+      ]);
+
+      return {
+        ...d,
+        total_revenue: Number(revenue ?? 0),
+        chapter_count: chapterCount ?? 0,
+      };
+    }),
+  );
+
+  return {
+    data: withStats as unknown as DistrictWithStats[],
+    count: safeCount,
+    pageCount,
+  };
+}
+
 const merchantSortColumns: Record<string, string> = {
   business_name: 'business_name',
   is_active: 'is_active',

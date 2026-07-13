@@ -862,6 +862,7 @@ export type Database = {
       }
       districts: {
         Row: {
+          city: string | null
           config: Json
           created_at: string | null
           created_by: string | null
@@ -871,10 +872,12 @@ export type Database = {
           name: string
           naming_preset: Database["public"]["Enums"]["district_naming_preset"]
           share_slug: string | null
+          state: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
+          city?: string | null
           config?: Json
           created_at?: string | null
           created_by?: string | null
@@ -884,10 +887,12 @@ export type Database = {
           name: string
           naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
           share_slug?: string | null
+          state?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
+          city?: string | null
           config?: Json
           created_at?: string | null
           created_by?: string | null
@@ -897,6 +902,7 @@ export type Database = {
           name?: string
           naming_preset?: Database["public"]["Enums"]["district_naming_preset"]
           share_slug?: string | null
+          state?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
@@ -2695,6 +2701,10 @@ export type Database = {
           p_district_id: string
         }
         Returns: Json
+      }
+      get_district_total_revenue: {
+        Args: { p_district_id: string }
+        Returns: number
       }
       get_goals_for_checkout: {
         Args: { p_member_account_id?: string; p_org_account_id: string }

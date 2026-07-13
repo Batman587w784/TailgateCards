@@ -72,6 +72,44 @@ export type UpdateOrganizationSchemaType = z.infer<
   typeof UpdateOrganizationSchema
 >;
 
+// District (Campus) schemas — M3 / P0-1
+export const CreateCampusSchema = z.object({
+  name: z.string().min(1, 'Campus name is required'),
+  districtType: z.enum(['campus', 'generic']).default('campus'),
+  state: StateSchemaOptional,
+  city: CitySchemaOptional,
+  isActive: z.boolean().optional().default(true),
+});
+
+export type CreateCampusSchemaType = z.infer<typeof CreateCampusSchema>;
+
+export const UpdateCampusSchema = z.object({
+  districtId: z.string().uuid('Invalid district ID'),
+  name: z.string().min(1, 'Campus name is required').optional(),
+  districtType: z.enum(['campus', 'generic']).optional(),
+  state: StateSchemaOptional,
+  city: CitySchemaOptional,
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateCampusSchemaType = z.infer<typeof UpdateCampusSchema>;
+
+export const ToggleCampusStatusSchema = z.object({
+  districtId: z.string().uuid('Invalid district ID'),
+  isActive: z.boolean(),
+});
+
+export type ToggleCampusStatusSchemaType = z.infer<
+  typeof ToggleCampusStatusSchema
+>;
+
+export const AssignChaptersSchema = z.object({
+  districtId: z.string().uuid('Invalid district ID'),
+  orgAccountIds: z.array(z.string().uuid()),
+});
+
+export type AssignChaptersSchemaType = z.infer<typeof AssignChaptersSchema>;
+
 // Merchant schemas
 export const CreateMerchantSchema = z.object({
   merchantName: z.string().min(1, 'Merchant name is required'),

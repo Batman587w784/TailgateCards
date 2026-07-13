@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@kit/ui/tabs';
 import {
   CardholderData,
   DistributorAccount,
+  DistrictWithStats,
   MerchantOption,
   MerchantWithAccount,
   OrganizationOption,
@@ -14,6 +15,7 @@ import {
 } from '../_lib/server/entities-page.loader';
 import { CardholdersTab } from './cardholders-tab';
 import { DistributorsTab } from './distributors-tab';
+import { DistrictsTab } from './districts-tab';
 import { MerchantsTab } from './merchants-tab';
 import { OrganizationsTab } from './organizations-tab';
 
@@ -38,6 +40,11 @@ interface EntitiesTabsProps {
     count: number;
     pageCount: number;
   };
+  districts: {
+    data: DistrictWithStats[];
+    count: number;
+    pageCount: number;
+  };
   organizationsForSelect: OrganizationOption[];
   merchantsForSelect: MerchantOption[];
   page: number;
@@ -53,6 +60,7 @@ export function EntitiesTabs({
   merchants,
   distributors,
   cardholders,
+  districts,
   organizationsForSelect,
   merchantsForSelect,
   page,
@@ -74,9 +82,12 @@ export function EntitiesTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-4">
+      <TabsList className="grid h-auto w-full grid-cols-1 gap-1 sm:grid-cols-5">
         <TabsTrigger value="organizations" className="py-2">
           Organizations
+        </TabsTrigger>
+        <TabsTrigger value="districts" className="py-2">
+          Districts
         </TabsTrigger>
         <TabsTrigger value="distributors" className="py-2">
           Distributors
@@ -100,6 +111,20 @@ export function EntitiesTabs({
           sortBy={sortBy}
           sortOrder={sortOrder}
           merchants={merchantsForSelect}
+        />
+      </TabsContent>
+
+      <TabsContent value="districts" className="mt-6">
+        <DistrictsTab
+          data={districts.data}
+          pageCount={districts.pageCount}
+          pageSize={pageSize}
+          page={page}
+          query={query}
+          totalCount={districts.count}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          organizations={organizationsForSelect}
         />
       </TabsContent>
 
