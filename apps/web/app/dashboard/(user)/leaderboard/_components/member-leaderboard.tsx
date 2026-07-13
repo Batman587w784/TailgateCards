@@ -82,37 +82,28 @@ function LeaderboardTable({ rows }: { rows: Row[] }) {
 }
 
 export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
-  const { position, summary, chapters, members } = data;
+  const { position, summary, chapters, members, membersScope } = data;
 
-  if (!position) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>You&apos;re not on a leaderboard yet</CardTitle>
-          <CardDescription>
-            Join a chapter to start selling and appear on the standings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/join/start" className="text-primary text-sm underline">
-            Get started
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!summary || !position.district_id) {
+  // No campus context (member whose org isn't in a campus, or an admin with no
+  // active campus yet).
+  if (!summary) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>No campus standings yet</CardTitle>
           <CardDescription>
-            Your organization isn&apos;t part of a campus competition yet. Your
-            own sales so far: {formatUsdFromCents(position.dollars_raised_cents)}{' '}
-            ({position.cards_sold} sold).
+            {position
+              ? `Your organization isn't part of a campus competition yet. Your own sales so far: ${formatUsdFromCents(position.dollars_raised_cents)} (${position.cards_sold} sold).`
+              : 'There is no active campus to show standings for yet.'}
           </CardDescription>
         </CardHeader>
+        {position ? (
+          <CardContent>
+            <Link href="/join/start" className="text-primary text-sm underline">
+              Get started
+            </Link>
+          </CardContent>
+        ) : null}
       </Card>
     );
   }
@@ -121,8 +112,8 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Campus total + my rank */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Campus total (+ my rank, members only) */}
+      <div className={`grid gap-4 ${position ? 'md:grid-cols-2' : ''}`}>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>{summary.campus_name} total raised</CardDescription>
@@ -140,22 +131,26 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-1.5">
-              <Trophy className="h-4 w-4" /> Your rank in your{' '}
-              {labels.organization.singular.toLowerCase()}
-            </CardDescription>
-            <CardTitle className="text-3xl">#{position.chapter_rank}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="text-muted-foreground text-sm">
-              {formatUsdFromCents(position.dollars_raised_cents)} raised ·{' '}
-              {position.cards_sold} sold
-            </div>
-            <GoalProgress progress={position.goal_progress} />
-          </CardContent>
-        </Card>
+        {position ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-1.5">
+                <Trophy className="h-4 w-4" /> Your rank in your{' '}
+                {labels.organization.singular.toLowerCase()}
+              </CardDescription>
+              <CardTitle className="text-3xl">
+                #{position.chapter_rank}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <div className="text-muted-foreground text-sm">
+                {formatUsdFromCents(position.dollars_raised_cents)} raised ·{' '}
+                {position.cards_sold} sold
+              </div>
+              <GoalProgress progress={position.goal_progress} />
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       {/* Chapter standings (campus) */}
@@ -174,18 +169,24 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
               dollars_raised_cents: c.dollars_raised_cents,
               cards_sold: c.cards_sold,
               goal_progress: c.goal_progress,
-              highlight: c.org_account_id === position.org_account_id,
+              highlight: c.org_account_id === position?.org_account_id,
             }))}
           />
         </CardContent>
       </Card>
 
-      {/* Member standings (my chapter) */}
+      {/* Member standings — own chapter (member/org-admin) or campus-wide (admin) */}
       <Card>
         <CardHeader>
-          <CardTitle>Your {labels.organization.singular.toLowerCase()}&apos;s {labels.member.plural.toLowerCase()}</CardTitle>
+          <CardTitle>
+            {membersScope === 'campus'
+              ? `${labels.member.singular} standings`
+              : `Your ${labels.organization.singular.toLowerCase()}'s ${labels.member.plural.toLowerCase()}`}
+          </CardTitle>
           <CardDescription>
-            {labels.member.plural} ranked by sales
+            {membersScope === 'campus'
+              ? `${labels.member.plural} ranked across ${summary.campus_name}`
+              : `${labels.member.plural} ranked by sales`}
           </CardDescription>
         </CardHeader>
         <CardContent>

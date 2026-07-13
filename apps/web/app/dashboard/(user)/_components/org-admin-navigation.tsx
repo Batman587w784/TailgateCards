@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { CreditCard, Users } from 'lucide-react';
+import { CreditCard, Trophy, Users } from 'lucide-react';
 
 import { SidebarMenuButton, SidebarMenuItem } from '@kit/ui/shadcn-sidebar';
 import { Trans } from '@kit/ui/trans';
@@ -13,6 +13,20 @@ export function OrgAdminNavigation() {
 
   return (
     <>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={path.includes('/dashboard/leaderboard')}
+          asChild
+        >
+          <Link
+            className="flex size-full gap-2.5"
+            href="/dashboard/leaderboard"
+          >
+            <Trophy className="h-4" />
+            Leaderboard
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
       <SidebarMenuItem>
         <SidebarMenuButton
           isActive={path.includes('/dashboard/org-admin/distributors')}

@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { TicketPercent, Users, Wallet, WalletCards } from 'lucide-react';
+import {
+  TicketPercent,
+  Trophy,
+  Users,
+  Wallet,
+  WalletCards,
+} from 'lucide-react';
 
 import { SidebarMenuButton, SidebarMenuItem } from '@kit/ui/shadcn-sidebar';
 import { Trans } from '@kit/ui/trans';
@@ -21,6 +27,18 @@ export function AdminNavigation() {
           <Link className="flex size-full gap-2.5" href="/dashboard/entities">
             <Users className="h-4" />
             <Trans i18nKey="common:routes.users" />
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={path.includes('/dashboard/leaderboard')}
+          asChild
+        >
+          <Link className="flex size-full gap-2.5" href="/dashboard/leaderboard">
+            <Trophy className="h-4" />
+            Leaderboard
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
