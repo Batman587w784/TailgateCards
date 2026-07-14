@@ -37,4 +37,11 @@ esac
 
 # `--db-url` is a per-subcommand flag in the current CLI (>= v2.x), not a global
 # one, so it must follow the subcommand (e.g. `supabase db push --db-url ...`).
+#
+# Prod `db push` uses --include-all so local migrations that sort before the last
+# migration on the remote database still get applied.
+if [[ "$env" == "prod" && "${1:-}" == "db" && "${2:-}" == "push" ]]; then
+  exec supabase "$@" --include-all --db-url "$DATABASE_URL"
+fi
+
 exec supabase "$@" --db-url "$DATABASE_URL"
