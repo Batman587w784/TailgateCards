@@ -78,6 +78,14 @@ export function StepActivation({
           distributorName={card.distributor_name}
         />
 
+        {/* P1-2: title & framing (no credit-card icon). */}
+        <div className="flex flex-col gap-1">
+          <h2 className="text-lg font-bold">Activate your digital card</h2>
+          <p className="text-muted-foreground text-sm">
+            Get access to all your digital discounts.
+          </p>
+        </div>
+
         <CardInfoDisplay
           card={{ display_code: null, organization: card.organization }}
           discounts={discounts}
