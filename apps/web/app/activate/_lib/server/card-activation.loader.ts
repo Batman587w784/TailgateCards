@@ -40,10 +40,13 @@ export interface CardActivationData {
       id: string;
       name: string;
       picture_url?: string | null;
+      city?: string | null;
+      state?: string | null;
     };
     card_type?: CardType;
     claim_token?: string;
     distributor_id?: string | null;
+    distributor_name?: string | null;
     distributor_slug?: string;
     organization_slug?: string;
     buyer_email?: string | null;

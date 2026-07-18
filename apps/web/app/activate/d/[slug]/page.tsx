@@ -74,9 +74,12 @@ async function DistributorBuyPage({ params }: PageProps) {
         id: row.organization_id,
         name: row.organization_name ?? 'Tailgate',
         picture_url: row.organization_picture_url,
+        city: row.organization_city,
+        state: row.organization_state,
       },
       card_type: 'digital',
       distributor_id: row.distributor_id,
+      distributor_name: row.distributor_name,
       distributor_slug: slug,
     },
   };

@@ -2,6 +2,7 @@
 
 import type { DiscountPreview } from '../../_lib/server/card-activation.loader';
 import { CardInfoDisplay } from '../card-info-display';
+import { GoalHeader } from '../goal-header';
 import { DigitalClaimForm } from '../digital-claim-form';
 import {
   DigitalPaymentForm,
@@ -18,10 +19,13 @@ interface CardData {
     id: string;
     name: string;
     picture_url?: string | null;
+    city?: string | null;
+    state?: string | null;
   };
   card_type?: 'physical' | 'digital';
   claim_token?: string;
   distributor_id?: string | null;
+  distributor_name?: string | null;
   distributor_slug?: string;
   organization_slug?: string;
   buyer_email?: string | null;
@@ -64,6 +68,16 @@ export function StepActivation({
 
     return (
       <div className="flex flex-col gap-6">
+        <GoalHeader
+          orgId={card.organization.id}
+          orgName={card.organization.name}
+          city={card.organization.city}
+          state={card.organization.state}
+          logoUrl={card.organization.picture_url}
+          distributorId={card.distributor_id}
+          distributorName={card.distributor_name}
+        />
+
         <CardInfoDisplay
           card={{ display_code: null, organization: card.organization }}
           discounts={discounts}

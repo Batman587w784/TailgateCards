@@ -74,6 +74,8 @@ async function OrganizationBuyPage({ params }: PageProps) {
         id: row.organization_id,
         name: row.organization_name ?? 'Tailgate',
         picture_url: row.organization_picture_url,
+        city: row.organization_city,
+        state: row.organization_state,
       },
       card_type: 'digital',
       distributor_id: null,

@@ -2607,9 +2607,11 @@ export type Database = {
         Returns: {
           distributor_id: string
           distributor_name: string
+          organization_city: string
           organization_id: string
           organization_name: string
           organization_picture_url: string
+          organization_state: string
           price_cents: number
         }[]
       }
@@ -2886,9 +2888,11 @@ export type Database = {
       get_organization_buy_page: {
         Args: { p_slug: string }
         Returns: {
+          organization_city: string
           organization_id: string
           organization_name: string
           organization_picture_url: string
+          organization_state: string
           price_cents: number
         }[]
       }
