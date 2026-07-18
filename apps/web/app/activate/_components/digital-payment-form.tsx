@@ -33,11 +33,14 @@ export type DigitalPaymentLink =
 interface DigitalPaymentFormProps {
   link: DigitalPaymentLink;
   onActivated: (result: ActivationResult) => void;
+  /** Number of cards to purchase (default 1). Drives the PaymentIntent amount. */
+  quantity?: number;
 }
 
 export function DigitalPaymentForm({
   link,
   onActivated,
+  quantity = 1,
 }: DigitalPaymentFormProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
@@ -54,6 +57,7 @@ export function DigitalPaymentForm({
       const result = await createDigitalCardPaymentIntentAction({
         slug: link.slug,
         linkType: link.type,
+        quantity,
       });
 
       if (cancelled) return;
@@ -80,7 +84,7 @@ export function DigitalPaymentForm({
     return () => {
       cancelled = true;
     };
-  }, [link.type, link.slug]);
+  }, [link.type, link.slug, quantity]);
 
   if (isCreatingIntent) {
     return (

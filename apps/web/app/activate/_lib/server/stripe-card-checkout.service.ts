@@ -92,7 +92,10 @@ interface CreateDigitalCardPaymentIntentParams {
   distributorAccountId: string | null;
   organizationId: string;
   organizationName: string;
+  /** Unit price of a single card. */
   priceCents: number;
+  /** Number of cards in this checkout (default 1). */
+  quantity?: number;
 }
 
 /**
@@ -107,20 +110,30 @@ export async function createDigitalCardPaymentIntent(
   const stripe = getStripeClient();
 
   const { priceCents } = params;
+  // Quantity multiplies the card price; the fixed processing fee is charged once
+  // per PaymentIntent (one Stripe transaction), which calculateCardCharge does
+  // by taking the aggregate card amount.
+  const quantity = Math.max(1, Math.floor(params.quantity ?? 1));
+  const cardCents = priceCents * quantity;
   const { feeCents, taxCents, subtotalCents, totalCents } =
-    calculateCardCharge(priceCents);
+    calculateCardCharge(cardCents);
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalCents,
     currency: 'usd',
-    description: `Tailgate Digital Card - ${params.organizationName}`,
+    description:
+      quantity > 1
+        ? `Tailgate Digital Cards (x${quantity}) - ${params.organizationName}`
+        : `Tailgate Digital Card - ${params.organizationName}`,
     metadata: {
       kind: 'digital_card',
       ...(params.distributorAccountId
         ? { distributor_id: params.distributorAccountId }
         : {}),
       organization_id: params.organizationId,
-      card_cents: priceCents.toString(),
+      quantity: quantity.toString(),
+      unit_price_cents: priceCents.toString(),
+      card_cents: cardCents.toString(),
       fee_cents: feeCents.toString(),
       subtotal_cents: subtotalCents.toString(),
       tax_cents: taxCents.toString(),

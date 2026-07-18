@@ -748,7 +748,7 @@ export const confirmPaymentAndActivate = enhanceAction(
 export const createDigitalCardPaymentIntentAction = enhanceAction(
   async (data) =>
     withActionContext('createDigitalCardPaymentIntent', async (ctx) => {
-      const { slug, linkType } = data;
+      const { slug, linkType, quantity } = data;
 
       const adminClient = getSupabaseServerAdminClient();
 
@@ -807,6 +807,7 @@ export const createDigitalCardPaymentIntentAction = enhanceAction(
           organizationId,
           organizationName,
           priceCents,
+          quantity,
         });
 
         ctx.logger.info(
@@ -826,6 +827,8 @@ export const createDigitalCardPaymentIntentAction = enhanceAction(
           success: true as const,
           clientSecret,
           paymentIntentId,
+          quantity,
+          unitPriceCents: priceCents,
           subtotalCents,
           feeCents,
           taxCents,

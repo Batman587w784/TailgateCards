@@ -167,12 +167,24 @@ const LinkTypeSchema = z
 export type DigitalLinkType = z.infer<typeof LinkTypeSchema>;
 
 /**
+ * Upper bound on how many cards a buyer can purchase in a single checkout.
+ * Shared by the quantity picker, the PaymentIntent action, and the schema.
+ */
+export const MAX_CARD_QUANTITY = 25;
+
+/**
  * Schema for creating a digital-card PaymentIntent from a distributor or
  * organization sales-link slug.
  */
 export const CreateDigitalCardPaymentIntentSchema = z.object({
   slug: z.string().min(1),
   linkType: LinkTypeSchema,
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_CARD_QUANTITY)
+    .default(1),
 });
 
 export type CreateDigitalCardPaymentIntentData = z.infer<
