@@ -171,6 +171,16 @@ async function handlePaymentSuccess(
   logger.info({ ...ctx, cardId }, 'Card marked as paid via webhook');
 }
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseIntOrNull(value: string | undefined): number | null {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 async function handleDigitalCardPayment(
   paymentIntent: Stripe.PaymentIntent,
   logger: Awaited<ReturnType<typeof getLogger>>,
@@ -193,25 +203,43 @@ async function handleDigitalCardPayment(
   // time by the purchase form (P1-5), so it survives to this webhook.
   const buyerPhone = paymentIntent.metadata.buyer_phone ?? null;
 
-  await createDigitalCardAndEmail({
+  // Quantity + unit price are set on the PI at creation time (P1-4b). Fall back
+  // to a single card priced at the full charge if metadata is somehow absent.
+  const quantity = parsePositiveInt(paymentIntent.metadata.quantity, 1);
+  const unitPriceCents = parsePositiveInt(
+    paymentIntent.metadata.unit_price_cents,
+    paymentIntent.amount,
+  );
+
+  await createDigitalCardOrderAndEmail({
     paymentIntentId: paymentIntent.id,
     distributorId,
     organizationId,
     buyerEmail,
     buyerPhone,
-    amountCents: paymentIntent.amount,
+    quantity,
+    unitPriceCents,
+    subtotalCents: parseIntOrNull(paymentIntent.metadata.subtotal_cents),
+    feeCents: parseIntOrNull(paymentIntent.metadata.fee_cents),
+    taxCents: parseIntOrNull(paymentIntent.metadata.tax_cents),
+    totalCents: paymentIntent.amount,
     logger,
     ctx,
   });
 }
 
-async function createDigitalCardAndEmail(params: {
+async function createDigitalCardOrderAndEmail(params: {
   paymentIntentId: string;
   distributorId: string | null;
   organizationId: string;
   buyerEmail: string | null;
   buyerPhone: string | null;
-  amountCents: number;
+  quantity: number;
+  unitPriceCents: number;
+  subtotalCents: number | null;
+  feeCents: number | null;
+  taxCents: number | null;
+  totalCents: number;
   logger: Awaited<ReturnType<typeof getLogger>>;
   ctx: { name: string; [key: string]: unknown };
 }) {
@@ -221,79 +249,97 @@ async function createDigitalCardAndEmail(params: {
     organizationId,
     buyerEmail,
     buyerPhone,
-    amountCents,
+    quantity,
+    unitPriceCents,
+    subtotalCents,
+    feeCents,
+    taxCents,
+    totalCents,
     logger,
     ctx,
   } = params;
 
   const adminClient = getSupabaseServerAdminClient();
 
-  const { data, error } = await adminClient.rpc('create_digital_card', {
+  // Idempotent per PaymentIntent (card_orders.stripe_payment_intent_id UNIQUE):
+  // a retry — or a race with the inline confirm path, which calls the same RPC —
+  // returns the existing order's cards instead of creating duplicates.
+  const { data, error } = await adminClient.rpc('create_digital_card_order', {
     p_organization_id: organizationId,
     p_payment_intent_id: paymentIntentId,
     // Generated args type is non-nullable, but the SQL fn accepts NULL when
     // the buyer didn't fill an email at Stripe checkout.
     p_buyer_email: buyerEmail as string,
-    p_price_cents: amountCents,
+    p_quantity: quantity,
+    p_unit_price_cents: unitPriceCents,
     // Omit p_distributor_id entirely for org-direct sales so the SQL fn's
     // default (NULL) applies; the generator types it as optional non-null.
     ...(distributorId ? { p_distributor_id: distributorId } : {}),
     ...(buyerPhone ? { p_buyer_phone: buyerPhone } : {}),
+    ...(subtotalCents !== null ? { p_subtotal_cents: subtotalCents } : {}),
+    ...(feeCents !== null ? { p_fee_cents: feeCents } : {}),
+    ...(taxCents !== null ? { p_tax_cents: taxCents } : {}),
+    p_total_cents: totalCents,
   });
 
-  const row = data?.[0];
+  const cards = data ?? [];
 
-  if (error || !row) {
-    logger.error({ ...ctx, error }, 'create_digital_card RPC failed');
+  if (error || cards.length === 0) {
+    logger.error({ ...ctx, error }, 'create_digital_card_order RPC failed');
     return;
   }
 
   logger.info(
-    { ...ctx, cardId: row.card_id },
-    'Digital card created via webhook',
+    { ...ctx, cardCount: cards.length, quantity },
+    'Digital card order created via webhook',
   );
 
   if (!buyerEmail) {
-    logger.warn(
-      { ...ctx, cardId: row.card_id },
-      'No buyer_email; skipping claim email',
-    );
+    logger.warn(ctx, 'No buyer_email; skipping claim emails');
     return;
   }
 
-  const { data: cardRow } = await adminClient
+  // Skip cards already claimed inline (card #1 in the multi-card flow). Email a
+  // claim link for every still-unclaimed card so the buyer has the gift links
+  // even if they closed the post-purchase share screen.
+  const cardIds = cards.map((c) => c.card_id);
+
+  const { data: claimedRows } = await adminClient
     .from('cards')
-    .select('id, digital_card_number, cardholder_id')
-    .eq('id', row.card_id)
-    .maybeSingle();
+    .select('id')
+    .in('id', cardIds)
+    .not('cardholder_id', 'is', null);
 
-  if (cardRow?.cardholder_id) {
-    logger.info(
-      { ...ctx, cardId: row.card_id },
-      'Card already claimed inline; skipping claim email',
-    );
-    return;
-  }
+  const claimed = new Set((claimedRows ?? []).map((r) => r.id));
 
-  const displayCode = formatCardDisplayCode({
-    card_type: 'digital',
-    card_number: null,
-    digital_card_number: cardRow?.digital_card_number ?? null,
-    organization_prefix: null,
-    batch_prefix: null,
-  });
+  for (const card of cards) {
+    if (claimed.has(card.card_id)) {
+      continue;
+    }
 
-  try {
-    await sendDigitalCardClaimEmail({
-      email: buyerEmail,
-      cardCode: displayCode,
-      claimToken: row.claim_token,
+    const displayCode = formatCardDisplayCode({
+      card_type: 'digital',
+      card_number: null,
+      digital_card_number: card.digital_card_number ?? null,
+      organization_prefix: null,
+      batch_prefix: null,
     });
-  } catch (err) {
-    logger.error(
-      { ...ctx, email: buyerEmail, error: err },
-      'Failed to send digital claim email',
-    );
+
+    try {
+      // REVIEW (multi-card UX): one email per card. A single consolidated
+      // "your N cards" email is friendlier for large quantities — needs a new
+      // template; deferred.
+      await sendDigitalCardClaimEmail({
+        email: buyerEmail,
+        cardCode: displayCode,
+        claimToken: card.claim_token,
+      });
+    } catch (err) {
+      logger.error(
+        { ...ctx, email: buyerEmail, cardId: card.card_id, error: err },
+        'Failed to send digital claim email',
+      );
+    }
   }
 }
 
@@ -316,31 +362,40 @@ async function handleChargeRefunded(
 
   const adminClient = getSupabaseServerAdminClient();
 
-  const { data: card, error } = await adminClient
+  // A multi-card order shares one PaymentIntent across N cards, so cancel every
+  // not-already-cancelled card for this payment (a full refund voids the order).
+  const { data: cards, error } = await adminClient
     .from('cards')
     .select('id, status')
-    .eq('stripe_payment_intent_id', paymentIntentId)
-    .maybeSingle();
+    .eq('stripe_payment_intent_id', paymentIntentId);
 
-  if (error || !card) {
-    logger.warn({ ...ctx, error }, 'No card found for refunded payment');
+  if (error) {
+    logger.error({ ...ctx, error }, 'Failed to load cards for refunded payment');
     return;
   }
 
-  if (card.status === 'cancelled') {
-    logger.info({ ...ctx, cardId: card.id }, 'Card already cancelled');
+  const toCancel = (cards ?? []).filter((c) => c.status !== 'cancelled');
+
+  if (toCancel.length === 0) {
+    logger.info(ctx, 'No cancellable cards for refunded payment');
     return;
   }
 
   const { error: updateError } = await adminClient
     .from('cards')
     .update({ status: 'cancelled' })
-    .eq('id', card.id);
+    .in(
+      'id',
+      toCancel.map((c) => c.id),
+    );
 
   if (updateError) {
-    logger.error({ ...ctx, error: updateError }, 'Failed to cancel card');
+    logger.error({ ...ctx, error: updateError }, 'Failed to cancel cards');
     return;
   }
 
-  logger.info({ ...ctx, cardId: card.id }, 'Card cancelled due to refund');
+  logger.info(
+    { ...ctx, cancelledCount: toCancel.length },
+    'Cards cancelled due to refund',
+  );
 }

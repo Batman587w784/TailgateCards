@@ -957,37 +957,60 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         });
       }
 
-      // Idempotency: if this PaymentIntent has already activated a card, return
-      // the existing result. Lets the client retry finalize without rerunning
-      // Stripe confirmation.
-      const { data: alreadyActivated } = await adminClient
+      // Idempotency: if this PaymentIntent's order already exists and its primary
+      // card (lowest number) is activated, return the existing result. Lets the
+      // client retry finalize without rerunning Stripe confirmation. Ordered +
+      // multi-row aware because one order can span N cards sharing this PI.
+      const { data: existingOrderCards } = await adminClient
         .from('cards')
-        .select('id, cardholder_id, digital_card_number, stripe_customer_email')
+        .select(
+          'id, cardholder_id, digital_card_number, claim_token, stripe_customer_email',
+        )
         .eq('stripe_payment_intent_id', paymentIntentId)
-        .not('cardholder_id', 'is', null)
-        .maybeSingle();
+        .order('digital_card_number', { ascending: true });
 
-      if (alreadyActivated?.cardholder_id) {
+      const existingPrimary = existingOrderCards?.[0];
+
+      if (existingPrimary?.cardholder_id) {
         ctx.logger.info(
           {
             name: ctx.name,
             reference: ctx.reference,
             paymentIntentId,
-            cardId: alreadyActivated.id,
+            cardId: existingPrimary.id,
           },
           'Digital PaymentIntent already finalized; returning existing activation',
         );
+
+        const existingGiftCards = (existingOrderCards ?? [])
+          .filter(
+            (c): c is typeof c & { claim_token: string } =>
+              c.id !== existingPrimary.id && !!c.claim_token,
+          )
+          .map((c) => ({
+            claimToken: c.claim_token,
+            cardCode: formatCardDisplayCode({
+              card_type: 'digital',
+              card_number: null,
+              digital_card_number: c.digital_card_number ?? null,
+              organization_prefix: null,
+              batch_prefix: null,
+            }),
+          }));
+
         return {
           success: true as const,
-          accountId: alreadyActivated.cardholder_id,
+          accountId: existingPrimary.cardholder_id,
           cardCode: formatCardDisplayCode({
             card_type: 'digital',
             card_number: null,
-            digital_card_number: alreadyActivated.digital_card_number ?? null,
+            digital_card_number: existingPrimary.digital_card_number ?? null,
             organization_prefix: null,
             batch_prefix: null,
           }),
-          email: alreadyActivated.stripe_customer_email ?? email,
+          email: existingPrimary.stripe_customer_email ?? email,
+          quantity: existingOrderCards?.length ?? 1,
+          giftCards: existingGiftCards,
         };
       }
 
@@ -1073,24 +1096,56 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         accountId = newPersonalAccount.id;
       }
 
+      // Quantity + unit price are authoritative from the PaymentIntent metadata
+      // (what the buyer actually paid), not from the client.
+      const paidQuantity = Math.max(
+        1,
+        Number.parseInt(paymentIntent.metadata.quantity ?? '1', 10) || 1,
+      );
+      const unitPriceCents = Math.max(
+        0,
+        Number.parseInt(paymentIntent.metadata.unit_price_cents ?? '', 10) ||
+          paymentIntent.amount,
+      );
+      const metaSubtotal = Number.parseInt(
+        paymentIntent.metadata.subtotal_cents ?? '',
+        10,
+      );
+      const metaFee = Number.parseInt(paymentIntent.metadata.fee_cents ?? '', 10);
+      const metaTax = Number.parseInt(paymentIntent.metadata.tax_cents ?? '', 10);
+
+      // Idempotent per PaymentIntent; also shared with the Stripe webhook, so
+      // whichever fires first creates the order and the other reuses it.
       const { data: cardRows, error: cardError } = await adminClient.rpc(
-        'create_digital_card',
+        'create_digital_card_order',
         {
           p_organization_id: resolvedOrganizationId,
           p_payment_intent_id: paymentIntentId,
           p_buyer_email: email,
-          p_price_cents: paymentIntent.amount,
+          p_quantity: paidQuantity,
+          p_unit_price_cents: unitPriceCents,
           // Omit p_distributor_id entirely on org-direct sales so the SQL
           // default (NULL) applies; the generator types it as optional non-null.
           ...(resolvedDistributorId
             ? { p_distributor_id: resolvedDistributorId }
             : {}),
+          ...(Number.isFinite(metaSubtotal)
+            ? { p_subtotal_cents: metaSubtotal }
+            : {}),
+          ...(Number.isFinite(metaFee) ? { p_fee_cents: metaFee } : {}),
+          ...(Number.isFinite(metaTax) ? { p_tax_cents: metaTax } : {}),
+          p_total_cents: paymentIntent.amount,
         },
       );
 
-      const cardRow = cardRows?.[0];
+      const orderCards = cardRows ?? [];
 
-      if (cardError || !cardRow) {
+      // The buyer claims the first card (index 1); the rest stay unclaimed as
+      // gift links they can share (the one-card-per-account rule is unchanged).
+      const primaryCard =
+        orderCards.find((c) => c.card_index === 1) ?? orderCards[0];
+
+      if (cardError || !primaryCard) {
         return fail(ctx, 'CARD_CREATION_FAILED', {
           detail: { paymentIntentId, error: cardError?.message },
           level: 'error',
@@ -1108,7 +1163,7 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
           activated_at: new Date().toISOString(),
           expires_at: expiresAt.toISOString(),
         })
-        .eq('id', cardRow.card_id)
+        .eq('id', primaryCard.card_id)
         .is('cardholder_id', null);
 
       if (updateError) {
@@ -1118,13 +1173,13 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         ) {
           return fail(ctx, 'EMAIL_HAS_CARD', {
             detail: {
-              cardId: cardRow.card_id,
+              cardId: primaryCard.card_id,
               reason: 'constraint violation (race condition)',
             },
           });
         }
         return fail(ctx, 'ACTIVATION_FAILED', {
-          detail: { cardId: cardRow.card_id, error: updateError.message },
+          detail: { cardId: primaryCard.card_id, error: updateError.message },
           level: 'error',
         });
       }
@@ -1166,19 +1221,31 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         })
         .eq('id', accountId);
 
-      const { data: activatedCard } = await adminClient
-        .from('cards')
-        .select('digital_card_number')
-        .eq('id', cardRow.card_id)
-        .maybeSingle();
-
       const displayCode = formatCardDisplayCode({
         card_type: 'digital',
         card_number: null,
-        digital_card_number: activatedCard?.digital_card_number ?? null,
+        digital_card_number: primaryCard.digital_card_number ?? null,
         organization_prefix: null,
         batch_prefix: null,
       });
+
+      // Gift cards: the extra cards from this order that the buyer can share.
+      // Each carries its own claim token and lands a recipient on /activate.
+      const giftCards = orderCards
+        .filter(
+          (c): c is typeof c & { claim_token: string } =>
+            c.card_id !== primaryCard.card_id && !!c.claim_token,
+        )
+        .map((c) => ({
+          claimToken: c.claim_token,
+          cardCode: formatCardDisplayCode({
+            card_type: 'digital',
+            card_number: null,
+            digital_card_number: c.digital_card_number ?? null,
+            organization_prefix: null,
+            batch_prefix: null,
+          }),
+        }));
 
       if (isNewUser) {
         try {
@@ -1204,7 +1271,7 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         {
           name: ctx.name,
           reference: ctx.reference,
-          cardId: cardRow.card_id,
+          cardId: primaryCard.card_id,
           accountId,
         },
         'Digital card activated inline',
@@ -1215,6 +1282,8 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         accountId,
         cardCode: displayCode,
         email,
+        quantity: paidQuantity,
+        giftCards,
       };
     }),
   {

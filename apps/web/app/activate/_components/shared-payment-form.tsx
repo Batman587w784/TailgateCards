@@ -66,10 +66,20 @@ export interface ConfirmPaymentInput {
   marketingOptIn: boolean;
 }
 
+/** An extra card from a multi-card order the buyer can gift/share. */
+export interface GiftCard {
+  claimToken: string;
+  cardCode: string;
+}
+
 export interface ActivationResult {
   accountId: string;
   cardCode: string;
   email: string;
+  /** How many cards were purchased in this order (1 for a single card). */
+  quantity?: number;
+  /** The extra (unclaimed) cards from a multi-card order, to share. */
+  giftCards?: GiftCard[];
 }
 
 interface ConfirmResponse {
@@ -79,6 +89,8 @@ interface ConfirmResponse {
   accountId?: string;
   cardCode?: string;
   email?: string;
+  quantity?: number;
+  giftCards?: GiftCard[];
 }
 
 interface ValidateEmailResponse {
@@ -147,6 +159,8 @@ export function SharedPaymentForm({
           accountId: result.accountId,
           cardCode: result.cardCode ?? '',
           email: result.email,
+          quantity: result.quantity,
+          giftCards: result.giftCards,
         });
       } else {
         form.setError('root', {
