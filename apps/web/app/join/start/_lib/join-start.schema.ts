@@ -6,6 +6,7 @@ import { z } from 'zod';
  * signInWithOtp.
  */
 export const JoinContactSchema = z.object({
+  name: z.string().min(1, 'Enter your name'),
   phone: z
     .string()
     .min(8, 'Enter a valid phone number (include country code, e.g. +1…)'),

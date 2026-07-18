@@ -144,7 +144,7 @@ export function JoinStartFlow() {
 
   const contactForm = useForm<JoinContactFormData>({
     resolver: zodResolver(JoinContactSchema),
-    defaultValues: { phone: '', email: '' },
+    defaultValues: { name: '', phone: '', email: '' },
   });
 
   const generalForm = useForm<JoinGeneralFormData>({
@@ -163,7 +163,12 @@ export function JoinStartFlow() {
     const phone = normalizePhoneE164(values.phone);
 
     try {
-      setSelection((prev) => ({ ...prev, phone, email: values.email ?? '' }));
+      setSelection((prev) => ({
+        ...prev,
+        phone,
+        name: values.name,
+        email: values.email ?? '',
+      }));
       await sendCode(phone);
     } catch (err) {
       setError(codeError(err));
@@ -208,6 +213,8 @@ export function JoinStartFlow() {
           : await supabase.rpc('register_member', {
               p_org_account_id: selection.orgId,
               p_phone: selection.phone,
+              p_name: selection.name,
+              p_email: selection.email || undefined,
             });
 
       if (registerError) throw registerError;
@@ -399,6 +406,25 @@ export function JoinStartFlow() {
               className="flex flex-col gap-4"
               onSubmit={contactForm.handleSubmit(onContactSubmit)}
             >
+              <FormField
+                control={contactForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Jane Doe"
+                        autoComplete="name"
+                        data-test="join-name-input"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={contactForm.control}
                 name="phone"

@@ -3040,7 +3040,12 @@ export type Database = {
         Returns: undefined
       }
       register_member: {
-        Args: { p_org_account_id: string; p_phone?: string }
+        Args: {
+          p_email?: string
+          p_name?: string
+          p_org_account_id: string
+          p_phone?: string
+        }
         Returns: string
       }
       revoke_nonce: {
