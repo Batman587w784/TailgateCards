@@ -11,14 +11,17 @@ import { fail, withActionContext } from '~/lib/server/action-context';
 import { sendCardholderWelcomeEmail } from '~/lib/server/cardholder-welcome.service';
 
 import {
+  AttachBuyerContactSchema,
   ConfirmDigitalPaymentSchema,
   ConfirmPaymentSchema,
   CreateDigitalCardPaymentIntentSchema,
   CreatePaymentIntentSchema,
   VerifyCardSchema,
+  normalizePhoneToE164,
 } from '../schemas/card-activation.schema';
 import { fetchDiscountsForOrg } from './card-activation.loader';
 import {
+  attachContactToPaymentIntent,
   createCardPaymentIntent,
   createDigitalCardPaymentIntent,
   getPaymentIntent,
@@ -739,11 +742,51 @@ export const confirmPaymentAndActivate = enhanceAction(
 // =============================================================================
 
 /**
+ * Attaches buyer contact (email + optional phone) to the PaymentIntent right
+ * before the buyer confirms payment. This puts the email on receipt_email and
+ * the E.164 phone in metadata so both fulfillment paths — inline confirm and the
+ * Stripe webhook fallback — can persist the buyer's contact details.
+ */
+export const attachBuyerContactToPaymentIntent = enhanceAction(
+  async (data) =>
+    withActionContext('attachBuyerContactToPaymentIntent', async (ctx) => {
+      const buyerPhone = data.phone ? normalizePhoneToE164(data.phone) : null;
+
+      if (data.phone && buyerPhone === null) {
+        return fail(ctx, 'INVALID_PHONE', {
+          detail: { reason: 'phone failed E.164 normalization' },
+        });
+      }
+
+      try {
+        await attachContactToPaymentIntent(data.paymentIntentId, {
+          email: data.email,
+          buyerPhone,
+        });
+
+        return { success: true as const };
+      } catch (err) {
+        return fail(ctx, 'ATTACH_CONTACT_FAILED', {
+          detail: {
+            paymentIntentId: data.paymentIntentId,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          level: 'error',
+        });
+      }
+    }),
+  {
+    schema: AttachBuyerContactSchema,
+    auth: false,
+  },
+);
+
+/**
  * Creates a Stripe PaymentIntent for an inline digital-card purchase tied to a
  * specific distributor's share slug. The card row is not created here — it is
  * created by `confirmDigitalPaymentAndActivate` (or, as backup, by the Stripe
  * webhook) once payment succeeds. Both paths call the idempotent
- * `create_digital_card` RPC.
+ * `create_digital_card_order` RPC.
  */
 export const createDigitalCardPaymentIntentAction = enhanceAction(
   async (data) =>
@@ -1113,6 +1156,8 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
       );
       const metaFee = Number.parseInt(paymentIntent.metadata.fee_cents ?? '', 10);
       const metaTax = Number.parseInt(paymentIntent.metadata.tax_cents ?? '', 10);
+      // Buyer phone (E.164) is attached to PI metadata at confirm time (P1-5).
+      const buyerPhone = paymentIntent.metadata.buyer_phone ?? null;
 
       // Idempotent per PaymentIntent; also shared with the Stripe webhook, so
       // whichever fires first creates the order and the other reuses it.
@@ -1129,6 +1174,7 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
           ...(resolvedDistributorId
             ? { p_distributor_id: resolvedDistributorId }
             : {}),
+          ...(buyerPhone ? { p_buyer_phone: buyerPhone } : {}),
           ...(Number.isFinite(metaSubtotal)
             ? { p_subtotal_cents: metaSubtotal }
             : {}),

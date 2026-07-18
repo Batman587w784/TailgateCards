@@ -233,6 +233,26 @@ export async function getPaymentIntent(paymentIntentId: string) {
 }
 
 /**
+ * Attaches buyer contact to a PaymentIntent just before confirmation:
+ * - receipt_email so the webhook fallback (and Stripe receipts) have the buyer's
+ *   email even if inline activation never runs.
+ * - metadata.buyer_phone (E.164) so both fulfillment paths can persist it.
+ */
+export async function attachContactToPaymentIntent(
+  paymentIntentId: string,
+  contact: { email: string; buyerPhone?: string | null },
+): Promise<void> {
+  const stripe = getStripeClient();
+
+  await stripe.paymentIntents.update(paymentIntentId, {
+    receipt_email: contact.email,
+    ...(contact.buyerPhone
+      ? { metadata: { buyer_phone: contact.buyerPhone } }
+      : {}),
+  });
+}
+
+/**
  * Constructs and verifies a Stripe webhook event.
  */
 export async function constructWebhookEvent(

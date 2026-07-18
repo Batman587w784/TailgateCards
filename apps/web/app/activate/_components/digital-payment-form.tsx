@@ -15,6 +15,7 @@ import {
 } from '../_lib/activation-errors';
 import { MAX_CARD_QUANTITY } from '../_lib/schemas/card-activation.schema';
 import {
+  attachBuyerContactToPaymentIntent,
   confirmDigitalPaymentAndActivate,
   createDigitalCardPaymentIntentAction,
   validateEmailForActivation,
@@ -163,6 +164,17 @@ export function DigitalPaymentForm({
             returnUrl={`${window.location.origin}/activate/${
               link.type === 'organization' ? 'o' : 'd'
             }/${link.slug}`}
+            collectPhone
+            attachContact={async (input) => {
+              const res = await attachBuyerContactToPaymentIntent(input);
+              if (res.success) {
+                return { success: true };
+              }
+              return {
+                success: false,
+                message: `Could not save your contact details (Reference: ${res.reference})`,
+              };
+            }}
             validateEmail={async (email) => {
               const res = await validateEmailForActivation({ email });
               if (res.available) {

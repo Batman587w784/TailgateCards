@@ -36,6 +36,11 @@ import {
   ActivateCardSchema,
 } from '../_lib/schemas/card-activation.schema';
 
+interface AttachContactResponse {
+  success: boolean;
+  message?: string;
+}
+
 const COUNTRIES = [
   { code: 'US', name: 'United States' },
   { code: 'CA', name: 'Canada' },
@@ -106,6 +111,17 @@ interface SharedPaymentFormProps {
   validateEmail: (email: string) => Promise<ValidateEmailResponse>;
   onConfirm: (input: ConfirmPaymentInput) => Promise<ConfirmResponse>;
   onActivated: (result: ActivationResult) => void;
+  /** When true, collect a (required) buyer phone number. */
+  collectPhone?: boolean;
+  /**
+   * Persists buyer contact onto the PaymentIntent just before confirmation.
+   * Provided by the digital purchase flow; omitted for physical cards.
+   */
+  attachContact?: (input: {
+    paymentIntentId: string;
+    email: string;
+    phone?: string;
+  }) => Promise<AttachContactResponse>;
 }
 
 export function SharedPaymentForm({
@@ -115,6 +131,8 @@ export function SharedPaymentForm({
   validateEmail,
   onConfirm,
   onActivated,
+  collectPhone = false,
+  attachContact,
 }: SharedPaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -135,6 +153,7 @@ export function SharedPaymentForm({
       country: 'US',
       postalCode: '',
       cardholderName: '',
+      buyerPhone: '',
       termsAccepted: false,
       marketingOptIn: false,
     },
@@ -186,6 +205,15 @@ export function SharedPaymentForm({
 
     setIsProcessing(true);
 
+    if (collectPhone && !data.buyerPhone?.trim()) {
+      setIsProcessing(false);
+      form.setError('buyerPhone', {
+        type: 'server',
+        message: 'Phone number is required',
+      });
+      return;
+    }
+
     const emailValidation = await validateEmail(data.email);
 
     if (!emailValidation.available) {
@@ -197,6 +225,27 @@ export function SharedPaymentForm({
           'This email is already associated with a card.',
       });
       return;
+    }
+
+    // Persist buyer contact to the PaymentIntent BEFORE confirming, so the phone
+    // and receipt_email survive to the webhook even if the buyer never finishes
+    // inline activation.
+    if (attachContact) {
+      const attachResult = await attachContact({
+        paymentIntentId,
+        email: data.email,
+        phone: data.buyerPhone?.trim() || undefined,
+      });
+
+      if (!attachResult.success) {
+        setIsProcessing(false);
+        form.setError('root', {
+          type: 'server',
+          message:
+            attachResult.message ?? 'Could not save your contact details',
+        });
+        return;
+      }
     }
 
     const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
@@ -340,6 +389,28 @@ export function SharedPaymentForm({
             </FormItem>
           )}
         />
+
+        {collectPhone && (
+          <FormField
+            name="buyerPhone"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone</FormLabel>
+                <FormControl>
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    autoComplete="tel"
+                    data-test="phone-input"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <div className="space-y-2">
           <FormLabel>Card information</FormLabel>

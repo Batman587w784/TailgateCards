@@ -72,6 +72,29 @@ export const ActivateCardMvpSchema = z.object({
 export type ActivateCardMvpFormData = z.infer<typeof ActivateCardMvpSchema>;
 
 /**
+ * Normalizes a user-entered phone number to E.164, or returns null if it can't
+ * be made into a plausible number. US numbers (10 digits, or 11 starting with 1)
+ * get a +1; anything already starting with + is validated as-is.
+ */
+export function normalizePhoneToE164(input: string): string | null {
+  const trimmed = input.trim();
+
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('+')) {
+    const digits = trimmed.slice(1).replace(/\D/g, '');
+    return /^[1-9]\d{7,14}$/.test(digits) ? `+${digits}` : null;
+  }
+
+  const digits = trimmed.replace(/\D/g, '');
+
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+
+  return null;
+}
+
+/**
  * Cardholder name: single field, full name as printed on the card.
  */
 const CardholderNameSchema = z
@@ -96,6 +119,9 @@ export const ActivateCardSchema = z
     country: z.string().min(1, 'Country is required'),
     postalCode: z.string().min(1, 'ZIP/Postal code is required'),
     cardholderName: CardholderNameSchema,
+    // Optional at the schema level; the digital purchase form requires it (see
+    // SharedPaymentForm's collectPhone) and validates the E.164 conversion.
+    buyerPhone: z.string().trim().optional(),
     termsAccepted: z.boolean(),
     marketingOptIn: z.boolean(),
   })
@@ -105,6 +131,17 @@ export const ActivateCardSchema = z
         code: z.ZodIssueCode.custom,
         message: getPostalCodeErrorMessage(data.country),
         path: ['postalCode'],
+      });
+    }
+    if (
+      data.buyerPhone &&
+      data.buyerPhone.length > 0 &&
+      normalizePhoneToE164(data.buyerPhone) === null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please enter a valid phone number',
+        path: ['buyerPhone'],
       });
     }
     if (!data.termsAccepted) {
@@ -117,6 +154,19 @@ export const ActivateCardSchema = z
   });
 
 export type ActivateCardFormData = z.infer<typeof ActivateCardSchema>;
+
+/**
+ * Attaches buyer contact (email + optional phone) to a PaymentIntent before it
+ * is confirmed, so both the inline-confirm and webhook fulfillment paths can
+ * read them from PI metadata / receipt_email.
+ */
+export const AttachBuyerContactSchema = z.object({
+  paymentIntentId: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().trim().optional(),
+});
+
+export type AttachBuyerContactData = z.infer<typeof AttachBuyerContactSchema>;
 
 /**
  * Schema for creating PaymentIntent
