@@ -400,6 +400,111 @@ export type Database = {
           },
         ]
       }
+      card_orders: {
+        Row: {
+          buyer_email: string | null
+          buyer_phone: string | null
+          created_at: string
+          distributor_id: string | null
+          fee_cents: number | null
+          id: string
+          organization_id: string
+          quantity: number
+          stripe_payment_intent_id: string
+          subtotal_cents: number | null
+          tax_cents: number | null
+          total_cents: number | null
+          unit_price_cents: number
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          distributor_id?: string | null
+          fee_cents?: number | null
+          id?: string
+          organization_id: string
+          quantity: number
+          stripe_payment_intent_id: string
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          total_cents?: number | null
+          unit_price_cents: number
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_phone?: string | null
+          created_at?: string
+          distributor_id?: string | null
+          fee_cents?: number | null
+          id?: string
+          organization_id?: string
+          quantity?: number
+          stripe_payment_intent_id?: string
+          subtotal_cents?: number | null
+          tax_cents?: number | null
+          total_cents?: number | null
+          unit_price_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_orders_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "distributors_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "user_account_workspace"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_distributor_id_fkey"
+            columns: ["distributor_id"]
+            isOneToOne: false
+            referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "distributors_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "user_account_workspace"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cardholder_profiles: {
         Row: {
           account_id: string
@@ -507,6 +612,7 @@ export type Database = {
           expires_at: string | null
           id: string
           invite_sent_at: string | null
+          order_id: string | null
           organization_id: string
           paid_at: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
@@ -535,6 +641,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           invite_sent_at?: string | null
+          order_id?: string | null
           organization_id: string
           paid_at?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
@@ -563,6 +670,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           invite_sent_at?: string | null
+          order_id?: string | null
           organization_id?: string
           paid_at?: string | null
           payment_type?: Database["public"]["Enums"]["payment_type"]
@@ -636,6 +744,13 @@ export type Database = {
             columns: ["distributor_id"]
             isOneToOne: false
             referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cards_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "card_orders"
             referencedColumns: ["id"]
           },
           {
@@ -2205,6 +2320,7 @@ export type Database = {
           expires_at: string | null
           id: string
           invite_sent_at: string | null
+          order_id: string | null
           organization_id: string
           paid_at: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
@@ -2242,6 +2358,7 @@ export type Database = {
           expires_at: string | null
           id: string
           invite_sent_at: string | null
+          order_id: string | null
           organization_id: string
           paid_at: string | null
           payment_type: Database["public"]["Enums"]["payment_type"]
@@ -2332,6 +2449,27 @@ export type Database = {
         Returns: {
           card_id: string
           claim_token: string
+        }[]
+      }
+      create_digital_card_order: {
+        Args: {
+          p_buyer_email: string
+          p_buyer_phone?: string
+          p_distributor_id?: string
+          p_fee_cents?: number
+          p_organization_id: string
+          p_payment_intent_id: string
+          p_quantity: number
+          p_subtotal_cents?: number
+          p_tax_cents?: number
+          p_total_cents?: number
+          p_unit_price_cents: number
+        }
+        Returns: {
+          card_id: string
+          card_index: number
+          claim_token: string
+          digital_card_number: number
         }[]
       }
       create_invitation: {
