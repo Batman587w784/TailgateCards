@@ -15,6 +15,8 @@ import type {
   CardActivationData,
   DiscountPreview,
 } from '../_lib/server/card-activation.loader';
+import { GiftCardsShare } from './gift-cards-share';
+import type { ActivationResult, GiftCard } from './shared-payment-form';
 import { StepActivation } from './steps/step-activation';
 import { StepVerification } from './steps/step-verification';
 import { StepWallet } from './steps/step-wallet';
@@ -42,6 +44,8 @@ interface ActivatedCardData {
   cardCode: string;
   email: string;
   temporaryPasswordSent?: boolean;
+  quantity?: number;
+  giftCards?: GiftCard[];
 }
 
 interface ActivateCardFlowProps {
@@ -159,7 +163,7 @@ export function ActivateCardFlow({
     }
   };
 
-  const handleCardActivated = (result: ActivatedCardData) => {
+  const handleCardActivated = (result: ActivationResult) => {
     setActivatedCard(result);
     setCurrentStep(2);
   };
@@ -208,12 +212,17 @@ export function ActivateCardFlow({
       )}
 
       {currentStep === 2 && activatedCard && (
-        <StepWallet
-          cardCode={activatedCard.cardCode}
-          email={activatedCard.email}
-          platform={platform}
-          temporaryPasswordSent={activatedCard.temporaryPasswordSent ?? true}
-        />
+        <>
+          {activatedCard.giftCards && activatedCard.giftCards.length > 0 && (
+            <GiftCardsShare giftCards={activatedCard.giftCards} />
+          )}
+          <StepWallet
+            cardCode={activatedCard.cardCode}
+            email={activatedCard.email}
+            platform={platform}
+            temporaryPasswordSent={activatedCard.temporaryPasswordSent ?? true}
+          />
+        </>
       )}
     </div>
   );

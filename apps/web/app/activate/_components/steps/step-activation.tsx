@@ -8,6 +8,7 @@ import {
   DigitalPaymentForm,
   type DigitalPaymentLink,
 } from '../digital-payment-form';
+import type { ActivationResult } from '../shared-payment-form';
 import { StripePaymentForm } from '../stripe-payment-form';
 
 interface CardData {
@@ -29,12 +30,6 @@ interface CardData {
   distributor_slug?: string;
   organization_slug?: string;
   buyer_email?: string | null;
-}
-
-interface ActivationResult {
-  accountId: string;
-  cardCode: string;
-  email: string;
 }
 
 interface StepActivationProps {
@@ -91,7 +86,11 @@ export function StepActivation({
           discounts={discounts}
         />
 
-        <DigitalPaymentForm link={link} onActivated={onActivated} />
+        <DigitalPaymentForm
+          link={link}
+          unitPriceCents={card.price_cents}
+          onActivated={onActivated}
+        />
       </div>
     );
   }
