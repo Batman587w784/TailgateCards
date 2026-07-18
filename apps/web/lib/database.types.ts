@@ -495,6 +495,7 @@ export type Database = {
           assigned_at: string | null
           batch_id: string | null
           buyer_email: string | null
+          buyer_phone: string | null
           card_number: number | null
           card_type: Database["public"]["Enums"]["card_type"]
           cardholder_id: string | null
@@ -522,6 +523,7 @@ export type Database = {
           assigned_at?: string | null
           batch_id?: string | null
           buyer_email?: string | null
+          buyer_phone?: string | null
           card_number?: number | null
           card_type?: Database["public"]["Enums"]["card_type"]
           cardholder_id?: string | null
@@ -549,6 +551,7 @@ export type Database = {
           assigned_at?: string | null
           batch_id?: string | null
           buyer_email?: string | null
+          buyer_phone?: string | null
           card_number?: number | null
           card_type?: Database["public"]["Enums"]["card_type"]
           cardholder_id?: string | null
@@ -2190,6 +2193,7 @@ export type Database = {
           assigned_at: string | null
           batch_id: string | null
           buyer_email: string | null
+          buyer_phone: string | null
           card_number: number | null
           card_type: Database["public"]["Enums"]["card_type"]
           cardholder_id: string | null
@@ -2226,6 +2230,7 @@ export type Database = {
           assigned_at: string | null
           batch_id: string | null
           buyer_email: string | null
+          buyer_phone: string | null
           card_number: number | null
           card_type: Database["public"]["Enums"]["card_type"]
           cardholder_id: string | null
@@ -2318,6 +2323,7 @@ export type Database = {
       create_digital_card: {
         Args: {
           p_buyer_email: string
+          p_buyer_phone?: string
           p_distributor_id?: string
           p_organization_id: string
           p_payment_intent_id: string
@@ -2568,6 +2574,10 @@ export type Database = {
           goal_target_cents: number
           rank: number
         }[]
+      }
+      get_checkout_goals: {
+        Args: { p_distributor_account_id?: string; p_org_account_id: string }
+        Returns: Json
       }
       get_config: { Args: never; Returns: Json }
       get_digital_card_for_activation: {
@@ -2951,7 +2961,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      install_extensions: { Args: never; Returns: undefined }
       is_aal2: { Args: never; Returns: boolean }
       is_account_owner: { Args: { account_id: string }; Returns: boolean }
       is_account_team_member: {

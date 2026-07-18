@@ -189,12 +189,16 @@ async function handleDigitalCardPayment(
   }
 
   const buyerEmail = paymentIntent.receipt_email;
+  // Buyer phone (E.164) is attached to the PaymentIntent metadata at confirm
+  // time by the purchase form (P1-5), so it survives to this webhook.
+  const buyerPhone = paymentIntent.metadata.buyer_phone ?? null;
 
   await createDigitalCardAndEmail({
     paymentIntentId: paymentIntent.id,
     distributorId,
     organizationId,
     buyerEmail,
+    buyerPhone,
     amountCents: paymentIntent.amount,
     logger,
     ctx,
@@ -206,6 +210,7 @@ async function createDigitalCardAndEmail(params: {
   distributorId: string | null;
   organizationId: string;
   buyerEmail: string | null;
+  buyerPhone: string | null;
   amountCents: number;
   logger: Awaited<ReturnType<typeof getLogger>>;
   ctx: { name: string; [key: string]: unknown };
@@ -215,6 +220,7 @@ async function createDigitalCardAndEmail(params: {
     distributorId,
     organizationId,
     buyerEmail,
+    buyerPhone,
     amountCents,
     logger,
     ctx,
@@ -232,6 +238,7 @@ async function createDigitalCardAndEmail(params: {
     // Omit p_distributor_id entirely for org-direct sales so the SQL fn's
     // default (NULL) applies; the generator types it as optional non-null.
     ...(distributorId ? { p_distributor_id: distributorId } : {}),
+    ...(buyerPhone ? { p_buyer_phone: buyerPhone } : {}),
   });
 
   const row = data?.[0];
