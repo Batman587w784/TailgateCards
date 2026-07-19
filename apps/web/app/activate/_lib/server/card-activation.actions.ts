@@ -1376,6 +1376,11 @@ const ClaimDigitalCardSchema = z.object({
  * mirrors the account-create / activate logic from confirmPaymentAndActivate.
  * No payment verification — that already happened in the webhook before this
  * row was inserted.
+ *
+ * // REVIEW (rate-limiting, deferred to M5 messaging pass): this anon claim
+ * endpoint has no throttle. Token-guessing is a non-issue (192-bit CSPRNG
+ * claim_token), so the gap is abuse/DoS, not enumeration. Deferred until the
+ * M5 pass adds shared rate-limit infra to build on.
  */
 export const claimDigitalCard = enhanceAction(
   async (data) =>
