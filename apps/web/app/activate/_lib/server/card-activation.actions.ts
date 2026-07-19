@@ -607,7 +607,7 @@ export const confirmPaymentAndActivate = enhanceAction(
 
       // Activate the card (only if not already activated and cardholder_id is null)
       if (card.status !== 'activated') {
-        const { error: updateError } = await adminClient
+        const { data: claimedRows, error: updateError } = await adminClient
           .from('cards')
           .update({
             status: 'activated',
@@ -620,7 +620,8 @@ export const confirmPaymentAndActivate = enhanceAction(
             paid_at: new Date().toISOString(),
           })
           .eq('id', card.id)
-          .is('cardholder_id', null);
+          .is('cardholder_id', null)
+          .select('id');
 
         if (updateError) {
           // Handle unique constraint violation (race condition)
@@ -640,6 +641,13 @@ export const confirmPaymentAndActivate = enhanceAction(
           return fail(ctx, 'ACTIVATION_FAILED', {
             detail: { cardId: card.id, error: updateError.message },
             level: 'error',
+          });
+        }
+
+        // Race-safety: the guarded UPDATE matched no row => already claimed.
+        if (!claimedRows || claimedRows.length === 0) {
+          return fail(ctx, 'CARD_ALREADY_ACTIVATED', {
+            detail: { cardId: card.id, reason: 'already claimed (race)' },
           });
         }
       }
@@ -1201,7 +1209,7 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-      const { error: updateError } = await adminClient
+      const { data: claimedRows, error: updateError } = await adminClient
         .from('cards')
         .update({
           status: 'activated',
@@ -1210,7 +1218,8 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
           expires_at: expiresAt.toISOString(),
         })
         .eq('id', primaryCard.card_id)
-        .is('cardholder_id', null);
+        .is('cardholder_id', null)
+        .select('id');
 
       if (updateError) {
         if (
@@ -1227,6 +1236,14 @@ export const confirmDigitalPaymentAndActivate = enhanceAction(
         return fail(ctx, 'ACTIVATION_FAILED', {
           detail: { cardId: primaryCard.card_id, error: updateError.message },
           level: 'error',
+        });
+      }
+
+      // Race-safety: no row matched the cardholder_id IS NULL guard means this
+      // card was already claimed (e.g. a shared link raced this checkout).
+      if (!claimedRows || claimedRows.length === 0) {
+        return fail(ctx, 'CARD_ALREADY_ACTIVATED', {
+          detail: { cardId: primaryCard.card_id, reason: 'already claimed (race)' },
         });
       }
 
@@ -1487,7 +1504,7 @@ export const claimDigitalCard = enhanceAction(
       const expiresAt = new Date();
       expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
-      const { error: updateError } = await adminClient
+      const { data: claimedRows, error: updateError } = await adminClient
         .from('cards')
         .update({
           status: 'activated',
@@ -1496,7 +1513,8 @@ export const claimDigitalCard = enhanceAction(
           expires_at: expiresAt.toISOString(),
         })
         .eq('id', card.id)
-        .is('cardholder_id', null);
+        .is('cardholder_id', null)
+        .select('id');
 
       if (updateError) {
         if (
@@ -1513,6 +1531,16 @@ export const claimDigitalCard = enhanceAction(
         return fail(ctx, 'ACTIVATION_FAILED', {
           detail: { cardId: card.id, error: updateError.message },
           level: 'error',
+        });
+      }
+
+      // Race-safety: the UPDATE is guarded by cardholder_id IS NULL, so if it
+      // matched no row another recipient claimed this forwarded link first.
+      // Return the "already claimed" error instead of a false success + an empty
+      // account (the losing racer previously fell through to success).
+      if (!claimedRows || claimedRows.length === 0) {
+        return fail(ctx, 'CARD_ALREADY_ACTIVATED', {
+          detail: { cardId: card.id, reason: 'claimed by another (race)' },
         });
       }
 
