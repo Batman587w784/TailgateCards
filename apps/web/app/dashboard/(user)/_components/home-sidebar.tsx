@@ -27,6 +27,7 @@ import { personalAccountNavigationConfig } from '~/config/personal-account-navig
 // home imports
 import type { UserWorkspace } from '../_lib/server/load-user-workspace';
 import { AdminNavigation } from './admin-navigation';
+import { DistrictAdminNavigation } from './district-admin-navigation';
 import { DistributorNavigation } from './distributor-navigation';
 import { DistributorShareLinkCard } from './distributor/distributor-share-link-card';
 import { MerchantNavigation } from './merchant-navigation';
@@ -62,6 +63,10 @@ export function HomeSidebar(props: HomeSidebarProps) {
 
               <If condition={props.workspace.platformRole === 'org_admin'}>
                 <OrgAdminNavigation />
+              </If>
+
+              <If condition={props.workspace.platformRole === 'district_admin'}>
+                <DistrictAdminNavigation />
               </If>
 
               <If condition={props.workspace.platformRole === 'merchant'}>
