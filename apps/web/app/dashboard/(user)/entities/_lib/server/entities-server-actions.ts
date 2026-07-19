@@ -56,6 +56,38 @@ function getService() {
   return createAdminEntitiesService(adminClient);
 }
 
+const SetOrgNonprofitAmountSchema = z.object({
+  orgAccountId: z.string().uuid(),
+  // Net cents to the nonprofit per card. Capped at $1,000/card as a sanity bound.
+  cents: z.coerce.number().int().min(0).max(100_000),
+});
+
+/**
+ * Sets an org's per-card nonprofit amount (ledger #21). SUPER-ADMIN ONLY
+ * (ledger #24) — this rate determines what the nonprofit receives, so a district
+ * must not change its own payout. Feeds org_net_cents_per_card / the net goal
+ * bars for campus-flagged districts.
+ */
+export const setOrgNonprofitAmount = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const adminClient = getSupabaseServerAdminClient();
+    const { error } = await adminClient
+      .from('organization_profiles')
+      .update({ nonprofit_cents_per_card: data.cents })
+      .eq('account_id', data.orgAccountId);
+
+    if (error) {
+      return { success: false as const, error: error.message };
+    }
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: SetOrgNonprofitAmountSchema },
+);
+
 export const createOrganizationAction = enhanceAction(
   async (data) => {
     const adminUserId = await requireSuperAdminAndGetUserId();

@@ -23,6 +23,7 @@ export type OrganizationWithAccount = {
   city: string | null;
   cash_payments_enabled: boolean;
   share_per_card_cents: number;
+  nonprofit_cents_per_card: number | null;
   is_active: boolean;
   created_at: string | null;
   total_revenue: number;
@@ -234,6 +235,7 @@ export async function loadOrganizations(
       city,
       cash_payments_enabled,
       share_per_card_cents,
+      nonprofit_cents_per_card,
       is_active,
       created_at,
       primary_contact_name,

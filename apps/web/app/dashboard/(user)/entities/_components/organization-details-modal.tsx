@@ -34,6 +34,7 @@ import {
 } from '../_lib/server/entities-page.loader';
 import {
   resendEntityInviteAction,
+  setOrgNonprofitAmount,
   updateOrganizationAction,
 } from '../_lib/server/entities-server-actions';
 import { uploadMerchantLogo } from '../_lib/utils/upload-merchant-logo';
@@ -45,6 +46,7 @@ import { StateAutocomplete } from './state-autocomplete';
 const UpdateOrganizationFormSchema = z.object({
   organizationName: z.string().min(1, 'Organization name is required'),
   sharePerCardCents: z.number().int().min(0).max(100000).optional(),
+  nonprofitCentsPerCard: z.number().int().min(0).max(100000).optional(),
   primaryContactEmail: z.string().email().optional().or(z.literal('')),
   contactPhone: z.string().optional(),
   address: z.string().optional(),
@@ -82,6 +84,7 @@ export function OrganizationDetailsModal({
     defaultValues: {
       organizationName: organization.organization_name ?? '',
       sharePerCardCents: organization.share_per_card_cents ?? 1250,
+      nonprofitCentsPerCard: organization.nonprofit_cents_per_card ?? 0,
       primaryContactEmail: organization.primary_contact_email ?? '',
       contactPhone: organization.contact_phone ?? '',
       address: organization.address ?? '',
@@ -116,6 +119,20 @@ export function OrganizationDetailsModal({
         });
 
         if (result.success) {
+          // Nonprofit-per-card is a separate super-admin-only action (ledger
+          // #24) — persist it alongside the org save.
+          const npResult = await setOrgNonprofitAmount({
+            orgAccountId: organization.account_id,
+            cents: data.nonprofitCentsPerCard ?? 0,
+          });
+
+          if (!npResult.success) {
+            toast.error('Organization saved, but the nonprofit amount failed.');
+            setIsEditing(false);
+            onOpenChange(false);
+            return;
+          }
+
           if (logoFile) {
             try {
               await uploadMerchantLogo(client, logoFile, organization.account_id);
@@ -290,6 +307,42 @@ export function OrganizationDetailsModal({
                           min="0"
                           max="1000"
                           placeholder="12.50"
+                          value={
+                            field.value ? (field.value / 100).toFixed(2) : ''
+                          }
+                          onChange={(e) => {
+                            const dollars = parseFloat(e.target.value);
+                            field.onChange(
+                              isNaN(dollars) ? 0 : Math.round(dollars * 100),
+                            );
+                          }}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          {field.value ? formatCurrency(field.value) : '-'}
+                        </span>
+                      )}
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Nonprofit per Card (super-admin only, ledger #24). Used as the
+                  net goal-bar basis for campus-flagged districts. */}
+              <FormField
+                control={form.control}
+                name="nonprofitCentsPerCard"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nonprofit per Card (campus districts)</FormLabel>
+                    <FormControl>
+                      {isEditing ? (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1000"
+                          placeholder="5.00"
                           value={
                             field.value ? (field.value / 100).toFixed(2) : ''
                           }
