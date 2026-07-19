@@ -2,7 +2,6 @@
 
 import type { DiscountPreview } from '../../_lib/server/card-activation.loader';
 import { CardInfoDisplay } from '../card-info-display';
-import { GoalHeader } from '../goal-header';
 import { DigitalClaimForm } from '../digital-claim-form';
 import {
   DigitalPaymentForm,
@@ -63,17 +62,8 @@ export function StepActivation({
 
     return (
       <div className="flex flex-col gap-6">
-        <GoalHeader
-          orgId={card.organization.id}
-          orgName={card.organization.name}
-          city={card.organization.city}
-          state={card.organization.state}
-          logoUrl={card.organization.picture_url}
-          distributorId={card.distributor_id}
-          distributorName={card.distributor_name}
-        />
-
-        {/* P1-2: title & framing (no credit-card icon). */}
+        {/* P1-2: title & framing (no credit-card icon). The goal header now
+            renders above the progress indicator in ActivateCardFlow. */}
         <div className="flex flex-col gap-1">
           <h2 className="text-lg font-bold">Activate your digital card</h2>
           <p className="text-muted-foreground text-sm">
@@ -88,7 +78,7 @@ export function StepActivation({
 
         <DigitalPaymentForm
           link={link}
-          unitPriceCents={card.price_cents}
+          orgName={card.organization.name}
           onActivated={onActivated}
         />
       </div>

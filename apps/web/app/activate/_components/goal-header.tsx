@@ -37,6 +37,17 @@ function pct(p: number | null | undefined) {
   return Math.min(100, Math.max(0, Math.round((p ?? 0) * 100)));
 }
 
+/** First-letters of a name (max 2), e.g. "Rodrick Heffley" -> "RH". */
+function initialsOf(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 /**
  * M3 / P1-1 — purchase-page goal header. Chapter logo (effective, via
  * get_effective_org_logo) + name + town, a GROSS campaign goal bar (decision
@@ -112,19 +123,30 @@ export function GoalHeader({
             cause; the rest covers the cards + platform.
           </p>
 
-          {/* Distributor sub-goal. */}
+          {/* Distributor sub-goal — avatar/initials + "Supporting [Name]'s drive"
+              + their own mini progress bar and raised/goal. */}
           {goals.distributor && distributorName ? (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-baseline justify-between gap-2 text-sm">
-                <span className="text-muted-foreground">
-                  Supporting {distributorName}&apos;s drive
-                </span>
-                <span className="text-muted-foreground tabular-nums">
-                  {formatUsdFromCents(goals.distributor.raised_cents)} /{' '}
-                  {formatUsdFromCents(goals.distributor.goal_cents)}
-                </span>
+            <div className="flex items-start gap-2.5">
+              <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold">
+                {initialsOf(distributorName)}
               </div>
-              <Progress value={pct(goals.distributor.progress)} className="h-1.5" />
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span>
+                    Supporting{' '}
+                    <b className="font-extrabold">{distributorName}</b>&apos;s
+                    drive
+                  </span>
+                  <span className="text-muted-foreground tabular-nums">
+                    {formatUsdFromCents(goals.distributor.raised_cents)} /{' '}
+                    {formatUsdFromCents(goals.distributor.goal_cents)}
+                  </span>
+                </div>
+                <Progress
+                  value={pct(goals.distributor.progress)}
+                  className="h-1.5"
+                />
+              </div>
             </div>
           ) : null}
         </div>

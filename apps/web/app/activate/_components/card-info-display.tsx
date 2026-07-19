@@ -48,8 +48,8 @@ export function CardInfoDisplay({ card, discounts = [] }: CardInfoDisplayProps) 
         <>
           {card.display_code ? <Separator className="my-4" /> : null}
 
-          {/* P1-3: "N discounts included" + VALID 1 YEAR badge. No dollar-savings
-              claim — the actual savings depend on how the buyer redeems. */}
+          {/* P1-3: "N discounts included" + LASTS 365 DAYS badge. No dollar-
+              savings claim — the actual savings depend on how the buyer redeems. */}
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-bold">
               {discounts.length} discount{discounts.length === 1 ? '' : 's'}{' '}
@@ -59,9 +59,13 @@ export function CardInfoDisplay({ card, discounts = [] }: CardInfoDisplayProps) 
               variant="secondary"
               className="shrink-0 text-[10px] font-semibold tracking-wide uppercase"
             >
-              Valid 1 Year
+              Lasts 365 Days
             </Badge>
           </div>
+
+          <p className="text-muted-foreground mt-1 text-xs">
+            Every card unlocks all of these local deals and lasts 365 days.
+          </p>
 
           <Separator className="my-3" />
 
@@ -82,9 +86,8 @@ export function CardInfoDisplay({ card, discounts = [] }: CardInfoDisplayProps) 
           )}
 
           <p className="text-muted-foreground mt-3 text-xs">
-            Discounts are valid for one full year. Tailgate reserves the right to
-            modify or discontinue any promotional campaigns or discounts at its
-            discretion.
+            Tailgate reserves the right to modify or discontinue any promotional
+            campaigns or discounts at its discretion.
           </p>
         </>
       )}

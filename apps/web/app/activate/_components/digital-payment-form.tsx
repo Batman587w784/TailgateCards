@@ -5,8 +5,7 @@ import { useEffect, useState } from 'react';
 import { Elements, loadStripe } from '@kit/stripe/components';
 import { Alert, AlertDescription, AlertTitle } from '@kit/ui/alert';
 import { Spinner } from '@kit/ui/spinner';
-
-import { formatUsdFromCents } from '~/lib/currency';
+import { cn } from '@kit/ui/utils';
 
 import {
   confirmActivationErrorMessage,
@@ -35,6 +34,10 @@ const stripePromise = loadStripe(
 // of clicks doesn't spin up an abandoned PaymentIntent per press.
 const QUANTITY_DEBOUNCE_MS = 400;
 
+// Quick-pick anchors beside the stepper (mockup: 1 / 4 / 8 / 12). Deliberate
+// price anchoring. Kept within the schema's max.
+const QUANTITY_CHIPS = [1, 4, 8, 12].filter((n) => n <= MAX_CARD_QUANTITY);
+
 export type DigitalPaymentLink =
   | { type: 'distributor'; slug: string }
   | { type: 'organization'; slug: string };
@@ -42,14 +45,14 @@ export type DigitalPaymentLink =
 interface DigitalPaymentFormProps {
   link: DigitalPaymentLink;
   onActivated: (result: ActivationResult) => void;
-  /** Unit price of a single card, for the quantity subtotal preview. */
-  unitPriceCents: number;
+  /** Chapter/campaign name, for the "$X toward [Chapter]'s goal" totals headline. */
+  orgName: string;
 }
 
 export function DigitalPaymentForm({
   link,
   onActivated,
-  unitPriceCents,
+  orgName,
 }: DigitalPaymentFormProps) {
   const [quantity, setQuantity] = useState(1);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -106,21 +109,54 @@ export function DigitalPaymentForm({
   return (
     <div className="flex flex-col gap-5">
       <div
-        className="bg-sidebar flex items-center justify-between rounded-lg border p-4"
+        className="bg-sidebar rounded-lg border p-4"
         data-test="quantity-picker"
       >
-        <div>
-          <p className="text-sm font-medium">How many cards?</p>
-          <p className="text-muted-foreground text-xs">
-            {formatUsdFromCents(unitPriceCents)} each · buy extras to gift
-          </p>
+        <p className="text-base font-extrabold">How many cards?</p>
+
+        <div className="mt-3 flex items-stretch gap-3">
+          <QuantityStepper
+            value={quantity}
+            max={MAX_CARD_QUANTITY}
+            disabled={isCreatingIntent}
+            onChange={setQuantity}
+          />
+
+          <div className="flex flex-1 gap-2">
+            {QUANTITY_CHIPS.map((n) => {
+              const selected = quantity === n;
+
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={selected}
+                  data-test={`quantity-chip-${n}`}
+                  disabled={isCreatingIntent}
+                  onClick={() => setQuantity(n)}
+                  className={cn(
+                    'flex flex-1 flex-col items-center justify-center rounded-xl border-2 py-2 transition-colors disabled:opacity-60',
+                    selected
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/40',
+                  )}
+                >
+                  <span className="text-base leading-none font-extrabold">
+                    {n}
+                  </span>
+                  <span className="text-muted-foreground mt-0.5 text-[10px] font-semibold">
+                    cards
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <QuantityStepper
-          value={quantity}
-          max={MAX_CARD_QUANTITY}
-          disabled={isCreatingIntent}
-          onChange={setQuantity}
-        />
+
+        <p className="text-primary mt-3 text-[13px] leading-snug font-bold">
+          Any extra cards go to friends — text them their cards right after
+          purchase to spread the love.
+        </p>
       </div>
 
       {isCreatingIntent ? (
@@ -165,6 +201,8 @@ export function DigitalPaymentForm({
               link.type === 'organization' ? 'o' : 'd'
             }/${link.slug}`}
             collectPhone
+            goalChapterName={orgName}
+            showWalletNotice={false}
             attachContact={async (input) => {
               const res = await attachBuyerContactToPaymentIntent(input);
               if (res.success) {

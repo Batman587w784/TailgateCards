@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-import Image from 'next/image';
-
 import { AlertCircle, Check } from 'lucide-react';
 
 import { Heading } from '@kit/ui/heading';
@@ -16,6 +14,7 @@ import type {
   DiscountPreview,
 } from '../_lib/server/card-activation.loader';
 import { GiftCardsShare } from './gift-cards-share';
+import { GoalHeader } from './goal-header';
 import type { ActivationResult, GiftCard } from './shared-payment-form';
 import { StepActivation } from './steps/step-activation';
 import { StepVerification } from './steps/step-verification';
@@ -30,10 +29,13 @@ interface CardData {
     id: string;
     name: string;
     picture_url?: string | null;
+    city?: string | null;
+    state?: string | null;
   };
   card_type?: 'physical' | 'digital';
   claim_token?: string;
   distributor_id?: string | null;
+  distributor_name?: string | null;
   distributor_slug?: string;
   organization_slug?: string;
   buyer_email?: string | null;
@@ -168,34 +170,26 @@ export function ActivateCardFlow({
     setCurrentStep(2);
   };
 
-  const isWalletStep = currentStep === 2;
+  // Digital purchase page: lead with the chapter goal header, above the
+  // progress indicator, so discounts sit near the top of the page.
+  const showGoalHeader =
+    currentStep === 1 &&
+    verifiedCard?.card_type === 'digital' &&
+    !verifiedCard.claim_token;
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <Image
-          src="/images/cards/card.png"
-          alt="Tailgate Card"
-          width={64}
-          height={40}
-          className="drop-shadow-lg"
-          priority
+      {showGoalHeader && verifiedCard ? (
+        <GoalHeader
+          orgId={verifiedCard.organization.id}
+          orgName={verifiedCard.organization.name}
+          city={verifiedCard.organization.city}
+          state={verifiedCard.organization.state}
+          logoUrl={verifiedCard.organization.picture_url}
+          distributorId={verifiedCard.distributor_id}
+          distributorName={verifiedCard.distributor_name}
         />
-        <div>
-          <Heading level={2} className="mb-1">
-            {isWalletStep
-              ? 'Add Your Card to a Wallet'
-              : verifiedCard?.card_type === 'digital'
-                ? 'Activate My Digital Card'
-                : 'Activate My Card'}
-          </Heading>
-          <p className="text-muted-foreground text-sm">
-            {isWalletStep
-              ? 'Your card is activated. Save it to your wallet so you have it on hand.'
-              : 'Please complete payment to activate your card.'}
-          </p>
-        </div>
-      </div>
+      ) : null}
 
       <ProgressTimeline steps={STEPS} currentStep={currentStep} />
 

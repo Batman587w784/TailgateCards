@@ -114,6 +114,14 @@ interface SharedPaymentFormProps {
   /** When true, collect a (required) buyer phone number. */
   collectPhone?: boolean;
   /**
+   * Chapter/campaign name. When provided, the totals box leads with the gross
+   * "You're putting $X toward [Chapter]'s goal" headline (decision #12) instead
+   * of a plain "Card amount" row.
+   */
+  goalChapterName?: string;
+  /** Show the "Wallet connection required" notice (default true). */
+  showWalletNotice?: boolean;
+  /**
    * Persists buyer contact onto the PaymentIntent just before confirmation.
    * Provided by the digital purchase flow; omitted for physical cards.
    */
@@ -132,6 +140,8 @@ export function SharedPaymentForm({
   onConfirm,
   onActivated,
   collectPhone = false,
+  goalChapterName,
+  showWalletNotice = true,
   attachContact,
 }: SharedPaymentFormProps) {
   const stripe = useStripe();
@@ -298,6 +308,11 @@ export function SharedPaymentForm({
       currency: 'USD',
     }).format(cents / 100);
 
+  // Gross campaign contribution, whole dollars (matches the mockup's "$X toward
+  // goal" headline — decision #12).
+  const formatWholeDollars = (cents: number) =>
+    `$${Math.round(cents / 100).toLocaleString('en-US')}`;
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
@@ -306,12 +321,22 @@ export function SharedPaymentForm({
           data-test="card-price-display"
         >
           <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Card amount</span>
-              <span data-test="card-amount">
-                {formatCents(priceBreakdown.cardCents)}
-              </span>
-            </div>
+            {goalChapterName ? (
+              <p
+                className="text-primary text-lg leading-tight font-extrabold"
+                data-test="goal-headline"
+              >
+                You&apos;re putting {formatWholeDollars(priceBreakdown.cardCents)}{' '}
+                toward {goalChapterName}&apos;s goal
+              </p>
+            ) : (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Card amount</span>
+                <span data-test="card-amount">
+                  {formatCents(priceBreakdown.cardCents)}
+                </span>
+              </div>
+            )}
             {priceBreakdown.feeCents > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Transaction fee</span>
@@ -340,18 +365,20 @@ export function SharedPaymentForm({
           </div>
         </div>
 
-        <div className="bg-sidebar rounded-lg border p-4">
-          <div className="flex items-start space-x-3">
-            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Wallet connection required</p>
-              <p className="text-muted-foreground text-sm">
-                You&apos;ll need to connect your card to Apple Wallet or Google
-                Wallet before you can use it.
-              </p>
+        {showWalletNotice && (
+          <div className="bg-sidebar rounded-lg border p-4">
+            <div className="flex items-start space-x-3">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Wallet connection required</p>
+                <p className="text-muted-foreground text-sm">
+                  You&apos;ll need to connect your card to Apple Wallet or Google
+                  Wallet before you can use it.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <If condition={form.formState.errors.root}>
           <Alert variant="destructive">
