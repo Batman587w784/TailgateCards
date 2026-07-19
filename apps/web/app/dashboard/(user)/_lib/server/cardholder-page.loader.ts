@@ -16,10 +16,16 @@ export interface CardholderCard {
   id: string;
   display_code: string;
   status: CardStatus;
+  // Derived from expires_at (ledger #22) — nothing writes status='expired', so
+  // the status flag alone would show a lapsed card as active.
+  is_expired: boolean;
   expires_at: string | null;
   organization: {
     id: string;
     name: string;
+    // The org's buy-page slug, for the "Renew" CTA (buy a new card for the
+    // same chapter). Null if the org has no slug.
+    slug: string | null;
   };
 }
 
@@ -160,6 +166,7 @@ async function fetchCardholderCard(
       organization:accounts!cards_organization_id_fkey (
         id,
         name,
+        slug,
         card_prefix
       ),
       batch:batches!cards_batch_id_fkey (
@@ -180,6 +187,7 @@ async function fetchCardholderCard(
   const org = data.organization as {
     id: string;
     name: string;
+    slug: string | null;
     card_prefix: string | null;
   };
   const batch = data.batch as { prefix: string } | null;
@@ -196,10 +204,13 @@ async function fetchCardholderCard(
     id: data.id,
     display_code: displayCode,
     status: data.status,
+    is_expired:
+      data.expires_at !== null && new Date(data.expires_at) < new Date(),
     expires_at: data.expires_at,
     organization: {
       id: org.id,
       name: org.name,
+      slug: org.slug,
     },
   };
 }

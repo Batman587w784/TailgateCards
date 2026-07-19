@@ -29,8 +29,14 @@ export async function CardholderDashboard({
 
   const platform = detectPlatform((await headers()).get('user-agent'));
 
+  const isExpired = data.card?.is_expired ?? false;
+  const renewHref = data.card?.organization.slug
+    ? `/activate/o/${data.card.organization.slug}`
+    : null;
+
   const showWalletWarning =
     data.card != null &&
+    !isExpired &&
     data.walletStatus.appleAddedAt == null &&
     data.walletStatus.googleAddedAt == null;
 
@@ -71,7 +77,11 @@ export async function CardholderDashboard({
         </div>
 
         {/* Active Discounts Section */}
-        <ActiveDiscountsSection discounts={data.discounts.active} />
+        <ActiveDiscountsSection
+          discounts={data.discounts.active}
+          isExpired={isExpired}
+          renewHref={renewHref}
+        />
       </PageBody>
     </div>
   );

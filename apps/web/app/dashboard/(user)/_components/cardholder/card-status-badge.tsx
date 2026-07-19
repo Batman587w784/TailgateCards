@@ -7,8 +7,9 @@ interface CardStatusBadgeProps {
 }
 
 export function CardStatusBadge({ card }: CardStatusBadgeProps) {
-  const isActive = card?.status === 'activated';
-  const statusText = isActive ? 'Active' : 'Inactive';
+  const isExpired = card?.is_expired ?? false;
+  const isActive = card?.status === 'activated' && !isExpired;
+  const statusText = isExpired ? 'Expired' : isActive ? 'Active' : 'Inactive';
 
   return (
     <div className="flex items-center gap-x-2">
