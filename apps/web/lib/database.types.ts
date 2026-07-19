@@ -2826,6 +2826,16 @@ export type Database = {
         Args: { distributor_account_id: string }
         Returns: number
       }
+      get_district_cause_dashboard: {
+        Args: { p_district_id: string }
+        Returns: {
+          cards_sold: number
+          cause_raised_cents: number
+          nonprofit_cents_per_card: number
+          org_account_id: string
+          organization_name: string
+        }[]
+      }
       get_district_leaderboard: {
         Args: {
           limit_count?: number

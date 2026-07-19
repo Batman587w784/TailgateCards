@@ -6,6 +6,7 @@ import { withI18n } from '~/lib/i18n/with-i18n';
 
 // local imports
 import { CardholderDashboard } from './_components/cardholder/cardholder-dashboard';
+import { DistrictAdminDashboard } from './_components/district-admin/district-admin-dashboard';
 import { DistributorDashboard } from './_components/distributor/distributor-dashboard';
 import { HomeLayoutPageHeader } from './_components/home-page-header';
 import { MerchantDashboard } from './_components/merchant/merchant-dashboard';
@@ -13,6 +14,7 @@ import { OrgAdminDashboard } from './_components/org-admin/org-admin-dashboard';
 import { SuperAdminDashboard } from './_components/super-admin-dashboard';
 import { UserDetailsCard } from './_components/user-details-card';
 import { loadCardholderDashboard } from './_lib/server/cardholder-page.loader';
+import { loadDistrictDashboard } from './_lib/server/district-dashboard.loader';
 import { loadDistributorDashboard } from './_lib/server/distributor-dashboard.loader';
 import { loadUserWorkspace } from './_lib/server/load-user-workspace';
 import { loadMerchantDashboard } from './_lib/server/merchant-page.loader';
@@ -97,6 +99,23 @@ async function UserHomePage({ searchParams }: UserHomePageProps) {
         data={merchantData}
         searchParams={{ page, search, sortBy, sortOrder }}
       />
+    );
+  }
+
+  // Show district (campus) admin dashboard for district_admin
+  if (platformRole === 'district_admin') {
+    const districtData = await loadDistrictDashboard();
+    return (
+      <div className="rounded-lg lg:m-4 lg:border">
+        <HomeLayoutPageHeader
+          title={<Trans i18nKey={'common:routes.home'} />}
+          description={<Trans i18nKey={'common:homeTabDescription'} />}
+        />
+
+        <PageBody>
+          <DistrictAdminDashboard data={districtData} />
+        </PageBody>
+      </div>
     );
   }
 
