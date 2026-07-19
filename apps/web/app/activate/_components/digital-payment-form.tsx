@@ -60,9 +60,6 @@ export function DigitalPaymentForm({
   const [priceBreakdown, setPriceBreakdown] = useState<PriceBreakdown | null>(
     null,
   );
-  // Net-to-entity for this whole order (net per card × quantity), for the
-  // "You're putting $X toward [entity]'s goal" headline (ledger #20).
-  const [netContributionCents, setNetContributionCents] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(true);
 
@@ -90,7 +87,6 @@ export function DigitalPaymentForm({
           taxCents: result.taxCents ?? 0,
           totalCents: result.totalCents ?? 0,
         });
-        setNetContributionCents((result.netCentsPerCard ?? 0) * quantity);
       } else if (!result.success) {
         setError(
           `${createDigitalPaymentIntentErrorMessage(result.code)} (Reference: ${result.reference})`,
@@ -206,7 +202,7 @@ export function DigitalPaymentForm({
             }/${link.slug}`}
             collectPhone
             goalChapterName={orgName}
-            goalContributionCents={netContributionCents}
+            quantity={quantity}
             showWalletNotice={false}
             attachContact={async (input) => {
               const res = await attachBuyerContactToPaymentIntent(input);

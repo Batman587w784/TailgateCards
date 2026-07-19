@@ -115,15 +115,13 @@ interface SharedPaymentFormProps {
   collectPhone?: boolean;
   /**
    * Chapter/campaign name. When provided, the totals box leads with the
-   * "You're putting $X toward [Chapter]'s goal" headline instead of a plain
-   * "Card amount" row.
+   * "You're purchasing N cards for $X supporting [Entity]" headline instead of
+   * a plain "Card amount" row. $X is the GROSS card amount (price × qty,
+   * pre-fee/pre-tax); goal bars stay net (ledger #20).
    */
   goalChapterName?: string;
-  /**
-   * Net-to-entity contribution for this order (ledger #20) — the figure the
-   * goal headline shows. Falls back to the gross card amount if unset.
-   */
-  goalContributionCents?: number;
+  /** Number of cards, for the headline count + pluralization. */
+  quantity?: number;
   /** Show the "Wallet connection required" notice (default true). */
   showWalletNotice?: boolean;
   /**
@@ -146,7 +144,7 @@ export function SharedPaymentForm({
   onActivated,
   collectPhone = false,
   goalChapterName,
-  goalContributionCents,
+  quantity = 1,
   showWalletNotice = true,
   attachContact,
 }: SharedPaymentFormProps) {
@@ -332,11 +330,9 @@ export function SharedPaymentForm({
                 className="text-primary text-lg leading-tight font-extrabold"
                 data-test="goal-headline"
               >
-                You&apos;re putting{' '}
-                {formatWholeDollars(
-                  goalContributionCents ?? priceBreakdown.cardCents,
-                )}{' '}
-                toward {goalChapterName}&apos;s goal
+                You&apos;re purchasing {quantity} card{quantity === 1 ? '' : 's'}{' '}
+                for {formatWholeDollars(priceBreakdown.cardCents)} supporting{' '}
+                {goalChapterName}
               </p>
             ) : (
               <div className="flex justify-between text-sm">
