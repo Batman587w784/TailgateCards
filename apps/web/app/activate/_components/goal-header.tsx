@@ -23,12 +23,28 @@ interface CheckoutGoals {
   } | null;
 }
 
+interface CampusSummary {
+  total_raised_cents: number;
+  goal_target_cents: number;
+  goal_progress: number;
+}
+
+interface HeaderDistrict {
+  id: string;
+  name: string;
+  type: string | null;
+  picture_url?: string | null;
+  city?: string | null;
+  state?: string | null;
+}
+
 interface GoalHeaderProps {
   orgId: string;
   orgName: string;
   city?: string | null;
   state?: string | null;
   logoUrl?: string | null;
+  district?: HeaderDistrict | null;
   distributorId?: string | null;
   distributorName?: string | null;
 }
@@ -49,9 +65,12 @@ function initialsOf(name: string) {
 }
 
 /**
- * M3 / P1-1 — purchase-page goal header. Chapter logo (effective, via
- * get_effective_org_logo) + name + town, a GROSS campaign goal bar (decision
- * #12), a split-disclosure line, and the distributor's sub-goal.
+ * M3 — purchase-page goal header, variant 3b (ledger #19).
+ *
+ * Headline rule (ledger #19): a campus-flagged district is the headline (its
+ * logo + name + district-level goal) with the chapter shown smaller underneath;
+ * otherwise the org is the headline. Bars show NET money to the headline entity
+ * (ledger #20) — no split disclosure. Long names truncate gracefully.
  */
 export function GoalHeader({
   orgId,
@@ -59,10 +78,13 @@ export function GoalHeader({
   city,
   state,
   logoUrl,
+  district,
   distributorId,
   distributorName,
 }: GoalHeaderProps) {
   const supabase = useSupabase();
+
+  const isCampusHeadline = district?.type === 'campus';
 
   const { data: goals } = useQuery({
     queryKey: ['checkout-goals', orgId, distributorId ?? null],
@@ -78,71 +100,122 @@ export function GoalHeader({
     },
   });
 
-  const town = [city, state].filter(Boolean).join(', ');
+  // Campus-flagged headline uses the DISTRICT-level goal for the main bar.
+  const { data: campus } = useQuery({
+    queryKey: ['campus-summary', district?.id ?? null],
+    enabled: Boolean(isCampusHeadline && district?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc(
+        'get_campus_leaderboard_summary',
+        { p_district_id: district!.id },
+      );
+
+      if (error) throw error;
+
+      return (data as unknown as CampusSummary | null) ?? null;
+    },
+  });
+
+  // Resolve the two shapes.
+  const headline = isCampusHeadline
+    ? {
+        logo: district?.picture_url ?? null,
+        name: district?.name ?? orgName,
+        town: [district?.city, district?.state].filter(Boolean).join(', '),
+        secondary: orgName,
+        goalLabel: 'Campus goal',
+      }
+    : {
+        logo: logoUrl ?? null,
+        name: orgName,
+        town: [city, state].filter(Boolean).join(', '),
+        secondary: null as string | null,
+        goalLabel: 'Campaign goal',
+      };
+
+  const bar = isCampusHeadline
+    ? campus
+      ? {
+          raised: campus.total_raised_cents,
+          goal: campus.goal_target_cents,
+          progress: campus.goal_progress,
+        }
+      : null
+    : goals
+      ? {
+          raised: goals.chapter.raised_cents,
+          goal: goals.chapter.goal_cents,
+          progress: goals.chapter.progress,
+        }
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        {logoUrl ? (
+      {/* Headline row: logo · name + secondary + town · right-aligned goal. */}
+      <div className="flex items-start gap-3">
+        {headline.logo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={logoUrl}
-            alt={orgName}
+            src={headline.logo}
+            alt={headline.name}
             className="h-16 w-16 flex-shrink-0 rounded-xl object-cover"
           />
         ) : null}
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold leading-tight">{orgName}</h1>
-          {town ? (
-            <p className="text-muted-foreground text-sm">{town}</p>
+
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl leading-tight font-bold">
+            {headline.name}
+          </h1>
+          {headline.secondary ? (
+            <p className="text-muted-foreground truncate text-sm font-medium">
+              {headline.secondary}
+            </p>
+          ) : null}
+          {headline.town ? (
+            <p className="text-muted-foreground truncate text-sm">
+              {headline.town}
+            </p>
           ) : null}
         </div>
+
+        {bar ? (
+          <div className="shrink-0 text-right">
+            <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
+              {headline.goalLabel}
+            </p>
+            <p className="text-sm font-semibold tabular-nums">
+              {formatUsdFromCents(bar.raised)} of {formatUsdFromCents(bar.goal)}
+            </p>
+          </div>
+        ) : null}
       </div>
 
-      {goals ? (
-        <div className="flex flex-col gap-3">
-          {/* Chapter campaign goal — GROSS campaign dollars (decision #12). */}
-          <div className="flex flex-col gap-1.5">
+      {bar ? (
+        <Progress value={pct(bar.progress)} className="h-2.5" />
+      ) : null}
+
+      {/* Distributor sub-goal — avatar/initials + "Supporting [Name]'s drive". */}
+      {goals?.distributor && distributorName ? (
+        <div className="flex items-start gap-2.5">
+          <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold">
+            {initialsOf(distributorName)}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-2 text-sm">
-              <span className="font-medium">{orgName} campaign goal</span>
-              <span className="tabular-nums">
-                {formatUsdFromCents(goals.chapter.raised_cents)} of{' '}
-                {formatUsdFromCents(goals.chapter.goal_cents)}
+              <span className="truncate">
+                Supporting <b className="font-extrabold">{distributorName}</b>
+                &apos;s drive
+              </span>
+              <span className="text-muted-foreground shrink-0 tabular-nums">
+                {formatUsdFromCents(goals.distributor.raised_cents)} /{' '}
+                {formatUsdFromCents(goals.distributor.goal_cents)}
               </span>
             </div>
-            <Progress value={pct(goals.chapter.progress)} className="h-2.5" />
+            <Progress
+              value={pct(goals.distributor.progress)}
+              className="h-1.5"
+            />
           </div>
-
-          {/* Split disclosure removed (ledger #20): the bar now shows NET money
-              that actually reaches the headline entity, so the figure is literally
-              true and needs no disclosure at the purchase moment. */}
-
-          {/* Distributor sub-goal — avatar/initials + "Supporting [Name]'s drive"
-              + their own mini progress bar and raised/goal. */}
-          {goals.distributor && distributorName ? (
-            <div className="flex items-start gap-2.5">
-              <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold">
-                {initialsOf(distributorName)}
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-2 text-sm">
-                  <span>
-                    Supporting{' '}
-                    <b className="font-extrabold">{distributorName}</b>&apos;s
-                    drive
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {formatUsdFromCents(goals.distributor.raised_cents)} /{' '}
-                    {formatUsdFromCents(goals.distributor.goal_cents)}
-                  </span>
-                </div>
-                <Progress
-                  value={pct(goals.distributor.progress)}
-                  className="h-1.5"
-                />
-              </div>
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>

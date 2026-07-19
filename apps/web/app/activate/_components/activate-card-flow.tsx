@@ -32,6 +32,14 @@ interface CardData {
     city?: string | null;
     state?: string | null;
   };
+  district?: {
+    id: string;
+    name: string;
+    type: string | null;
+    picture_url?: string | null;
+    city?: string | null;
+    state?: string | null;
+  } | null;
   card_type?: 'physical' | 'digital';
   claim_token?: string;
   distributor_id?: string | null;
@@ -180,18 +188,27 @@ export function ActivateCardFlow({
   return (
     <div className="flex w-full flex-col gap-6">
       {showGoalHeader && verifiedCard ? (
-        <GoalHeader
-          orgId={verifiedCard.organization.id}
-          orgName={verifiedCard.organization.name}
-          city={verifiedCard.organization.city}
-          state={verifiedCard.organization.state}
-          logoUrl={verifiedCard.organization.picture_url}
-          distributorId={verifiedCard.distributor_id}
-          distributorName={verifiedCard.distributor_name}
-        />
-      ) : null}
-
-      <ProgressTimeline steps={STEPS} currentStep={currentStep} />
+        // Variant 3b (ledger #19): goal header, then "Activate your digital
+        // card" sharing one row with a compact 3-step indicator.
+        <div className="flex flex-col gap-5">
+          <GoalHeader
+            orgId={verifiedCard.organization.id}
+            orgName={verifiedCard.organization.name}
+            city={verifiedCard.organization.city}
+            state={verifiedCard.organization.state}
+            logoUrl={verifiedCard.organization.picture_url}
+            district={verifiedCard.district}
+            distributorId={verifiedCard.distributor_id}
+            distributorName={verifiedCard.distributor_name}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <h2 className="text-lg font-bold">Activate your digital card</h2>
+            <MiniStepIndicator currentStep={currentStep} />
+          </div>
+        </div>
+      ) : (
+        <ProgressTimeline steps={STEPS} currentStep={currentStep} />
+      )}
 
       {currentStep === 0 && (
         <StepVerification onVerified={handleCardVerified} />
@@ -218,6 +235,47 @@ export function ActivateCardFlow({
           />
         </>
       )}
+    </div>
+  );
+}
+
+/** Compact 3-step indicator that shares a row with the purchase title (3b). */
+function MiniStepIndicator({ currentStep }: { currentStep: number }) {
+  const labels = ['Verify', 'Activate', 'Wallet'];
+
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      {labels.map((label, index) => {
+        const isComplete = index < currentStep;
+        const isActive = index === currentStep;
+
+        return (
+          <div key={label} className="flex items-center gap-1">
+            <span
+              className={cn(
+                'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold',
+                isComplete && 'bg-brand text-white',
+                isActive && 'border-brand text-brand border-2',
+                !isComplete &&
+                  !isActive &&
+                  'border-muted-foreground/30 text-muted-foreground border',
+              )}
+            >
+              {isComplete ? <Check className="h-3 w-3" /> : index + 1}
+            </span>
+            <span
+              className={cn(
+                'text-[11px] font-medium',
+                isComplete || isActive
+                  ? 'text-brand'
+                  : 'text-muted-foreground',
+              )}
+            >
+              {label}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

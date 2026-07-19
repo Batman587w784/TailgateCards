@@ -43,6 +43,16 @@ export interface CardActivationData {
       city?: string | null;
       state?: string | null;
     };
+    // The org's district (ledger #19). When district.type === 'campus' the header
+    // makes the district the headline and the org the secondary line.
+    district?: {
+      id: string;
+      name: string;
+      type: string | null;
+      picture_url?: string | null;
+      city?: string | null;
+      state?: string | null;
+    } | null;
     card_type?: CardType;
     claim_token?: string;
     distributor_id?: string | null;

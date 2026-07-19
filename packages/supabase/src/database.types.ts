@@ -2748,6 +2748,12 @@ export type Database = {
         Returns: {
           distributor_id: string
           distributor_name: string
+          district_city: string
+          district_id: string
+          district_name: string
+          district_picture_url: string
+          district_state: string
+          district_type: string
           organization_city: string
           organization_id: string
           organization_name: string
@@ -3029,6 +3035,12 @@ export type Database = {
       get_organization_buy_page: {
         Args: { p_slug: string }
         Returns: {
+          district_city: string
+          district_id: string
+          district_name: string
+          district_picture_url: string
+          district_state: string
+          district_type: string
           organization_city: string
           organization_id: string
           organization_name: string

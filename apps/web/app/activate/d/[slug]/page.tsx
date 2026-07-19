@@ -77,6 +77,16 @@ async function DistributorBuyPage({ params }: PageProps) {
         city: row.organization_city,
         state: row.organization_state,
       },
+      district: row.district_id
+        ? {
+            id: row.district_id,
+            name: row.district_name ?? '',
+            type: row.district_type,
+            picture_url: row.district_picture_url,
+            city: row.district_city,
+            state: row.district_state,
+          }
+        : null,
       card_type: 'digital',
       distributor_id: row.distributor_id,
       distributor_name: row.distributor_name,

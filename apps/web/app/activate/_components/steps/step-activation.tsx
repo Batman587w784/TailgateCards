@@ -62,15 +62,8 @@ export function StepActivation({
 
     return (
       <div className="flex flex-col gap-6">
-        {/* P1-2: title & framing (no credit-card icon). The goal header now
-            renders above the progress indicator in ActivateCardFlow. */}
-        <div className="flex flex-col gap-1">
-          <h2 className="text-lg font-bold">Activate your digital card</h2>
-          <p className="text-muted-foreground text-sm">
-            Get access to all your digital discounts.
-          </p>
-        </div>
-
+        {/* Title "Activate your digital card" now shares the header row with the
+            compact 3-step indicator in ActivateCardFlow (variant 3b, #19). */}
         <CardInfoDisplay
           card={{ display_code: null, organization: card.organization }}
           discounts={discounts}
