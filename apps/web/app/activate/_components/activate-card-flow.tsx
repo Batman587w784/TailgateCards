@@ -36,6 +36,7 @@ interface CardData {
     id: string;
     name: string;
     type: string | null;
+    naming_preset?: string | null;
     picture_url?: string | null;
     city?: string | null;
     state?: string | null;

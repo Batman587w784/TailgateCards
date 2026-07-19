@@ -2751,6 +2751,7 @@ export type Database = {
           district_city: string
           district_id: string
           district_name: string
+          district_naming_preset: string
           district_picture_url: string
           district_state: string
           district_type: string
@@ -3048,6 +3049,7 @@ export type Database = {
           district_city: string
           district_id: string
           district_name: string
+          district_naming_preset: string
           district_picture_url: string
           district_state: string
           district_type: string

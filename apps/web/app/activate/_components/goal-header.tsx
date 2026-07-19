@@ -6,6 +6,7 @@ import { useSupabase } from '@kit/supabase/hooks/use-supabase';
 import { Progress } from '@kit/ui/progress';
 
 import { formatUsdFromCents } from '~/lib/currency';
+import { type NamingPreset, getHierarchyLabels } from '~/lib/naming';
 
 interface CheckoutGoals {
   per_card: { price_cents: number; net_cents: number };
@@ -33,6 +34,7 @@ interface HeaderDistrict {
   id: string;
   name: string;
   type: string | null;
+  naming_preset?: string | null;
   picture_url?: string | null;
   city?: string | null;
   state?: string | null;
@@ -116,6 +118,19 @@ export function GoalHeader({
     },
   });
 
+  // Goal-bar label routed through the naming layer (ledger #6): the label names
+  // the entity in that bar — the district tier for a campus headline
+  // ("Campus goal"), the org tier for a chapter bar ("Chapter goal"), and a
+  // generic "Campaign goal" when there's no district.
+  const labels = getHierarchyLabels(
+    district?.naming_preset as NamingPreset | null | undefined,
+  );
+  const goalLabel = isCampusHeadline
+    ? `${labels.district.singular} goal`
+    : district
+      ? `${labels.organization.singular} goal`
+      : 'Campaign goal';
+
   // Resolve the two shapes.
   const headline = isCampusHeadline
     ? {
@@ -123,14 +138,12 @@ export function GoalHeader({
         name: district?.name ?? orgName,
         town: [district?.city, district?.state].filter(Boolean).join(', '),
         secondary: orgName,
-        goalLabel: 'Campus goal',
       }
     : {
         logo: logoUrl ?? null,
         name: orgName,
         town: [city, state].filter(Boolean).join(', '),
         secondary: null as string | null,
-        goalLabel: 'Campaign goal',
       };
 
   const bar = isCampusHeadline
@@ -181,7 +194,7 @@ export function GoalHeader({
         {bar ? (
           <div className="shrink-0 text-right">
             <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
-              {headline.goalLabel}
+              {goalLabel}
             </p>
             <p className="text-sm font-semibold tabular-nums">
               {formatUsdFromCents(bar.raised)} of {formatUsdFromCents(bar.goal)}

@@ -52,6 +52,9 @@ export interface CardActivationData {
       picture_url?: string | null;
       city?: string | null;
       state?: string | null;
+      // Naming preset for this district; resolved to tier labels
+      // ("Campus"/"Chapter") for the goal-bar label via ~/lib/naming.
+      naming_preset?: string | null;
     } | null;
     card_type?: CardType;
     claim_token?: string;

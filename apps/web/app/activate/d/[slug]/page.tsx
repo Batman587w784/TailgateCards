@@ -82,6 +82,7 @@ async function DistributorBuyPage({ params }: PageProps) {
             id: row.district_id,
             name: row.district_name ?? '',
             type: row.district_type,
+            naming_preset: row.district_naming_preset,
             picture_url: row.district_picture_url,
             city: row.district_city,
             state: row.district_state,
