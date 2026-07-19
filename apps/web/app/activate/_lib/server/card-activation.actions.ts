@@ -837,6 +837,14 @@ export const createDigitalCardPaymentIntentAction = enhanceAction(
         distributorAccountId = row.distributor_id;
       }
 
+      // Net-to-headline-entity per card (ledger #20) — drives the "You're
+      // putting $X toward [entity]'s goal" totals headline so the buy page and
+      // the goal bar show the same money that reaches the entity.
+      const { data: netCentsPerCard } = await adminClient.rpc(
+        'org_net_cents_per_card',
+        { p_org_account_id: organizationId },
+      );
+
       try {
         const {
           clientSecret,
@@ -872,6 +880,7 @@ export const createDigitalCardPaymentIntentAction = enhanceAction(
           paymentIntentId,
           quantity,
           unitPriceCents: priceCents,
+          netCentsPerCard: netCentsPerCard ?? 0,
           subtotalCents,
           feeCents,
           taxCents,

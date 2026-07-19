@@ -113,15 +113,9 @@ export function GoalHeader({
             <Progress value={pct(goals.chapter.progress)} className="h-2.5" />
           </div>
 
-          {/* Split disclosure — generic wording; there is no beneficiary field
-              in the schema yet (the nonprofit is IFC-selected, not the chapter).
-              REVIEW: replace with a real beneficiary field + legal-reviewed copy. */}
-          <p className="text-muted-foreground text-xs">
-            Each {formatUsdFromCents(goals.per_card.price_cents)} card funds local
-            discounts and supports {orgName}&apos;s cause —{' '}
-            {formatUsdFromCents(goals.per_card.net_cents)} per card goes to the
-            cause; the rest covers the cards + platform.
-          </p>
+          {/* Split disclosure removed (ledger #20): the bar now shows NET money
+              that actually reaches the headline entity, so the figure is literally
+              true and needs no disclosure at the purchase moment. */}
 
           {/* Distributor sub-goal — avatar/initials + "Supporting [Name]'s drive"
               + their own mini progress bar and raised/goal. */}

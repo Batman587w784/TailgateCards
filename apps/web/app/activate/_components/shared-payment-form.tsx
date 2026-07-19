@@ -114,11 +114,16 @@ interface SharedPaymentFormProps {
   /** When true, collect a (required) buyer phone number. */
   collectPhone?: boolean;
   /**
-   * Chapter/campaign name. When provided, the totals box leads with the gross
-   * "You're putting $X toward [Chapter]'s goal" headline (decision #12) instead
-   * of a plain "Card amount" row.
+   * Chapter/campaign name. When provided, the totals box leads with the
+   * "You're putting $X toward [Chapter]'s goal" headline instead of a plain
+   * "Card amount" row.
    */
   goalChapterName?: string;
+  /**
+   * Net-to-entity contribution for this order (ledger #20) — the figure the
+   * goal headline shows. Falls back to the gross card amount if unset.
+   */
+  goalContributionCents?: number;
   /** Show the "Wallet connection required" notice (default true). */
   showWalletNotice?: boolean;
   /**
@@ -141,6 +146,7 @@ export function SharedPaymentForm({
   onActivated,
   collectPhone = false,
   goalChapterName,
+  goalContributionCents,
   showWalletNotice = true,
   attachContact,
 }: SharedPaymentFormProps) {
@@ -326,7 +332,10 @@ export function SharedPaymentForm({
                 className="text-primary text-lg leading-tight font-extrabold"
                 data-test="goal-headline"
               >
-                You&apos;re putting {formatWholeDollars(priceBreakdown.cardCents)}{' '}
+                You&apos;re putting{' '}
+                {formatWholeDollars(
+                  goalContributionCents ?? priceBreakdown.cardCents,
+                )}{' '}
                 toward {goalChapterName}&apos;s goal
               </p>
             ) : (
