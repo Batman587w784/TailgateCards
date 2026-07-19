@@ -39,6 +39,21 @@ function extractCardId(scannedValue: string) {
 }
 
 /**
+ * A card is redeemable only when a cardholder has activated it and it has not
+ * passed its 365-day expiry. Single source of truth shared by validateCard
+ * (the on-screen status) and recordRedemption (the hard write gate) so the two
+ * never disagree.
+ *
+ * Expiry is a pure `expires_at` timestamp comparison — nothing writes
+ * `status = 'expired'`, so the status flag alone would never expire a card.
+ */
+function isCardRedeemable(status: string, expiresAt: string | null): boolean {
+  if (status !== 'activated') return false;
+  if (expiresAt !== null && new Date(expiresAt) < new Date()) return false;
+  return true;
+}
+
+/**
  * Records a discount redemption for a card.
  * Called when merchant staff applies a discount to a cardholder.
  */
@@ -68,6 +83,28 @@ export const recordRedemption = enhanceAction(
         return fail(ctx, 'MERCHANT_ACCESS_DENIED', {
           detail: { merchantId, error: membershipError?.message },
           level: 'error',
+        });
+      }
+
+      // R0 — hard expiry/status gate on the mutation. The validation *screen*
+      // already surfaces "Card has expired", but the redemption *write* did not
+      // check, so an expired card could still be redeemed by a direct call.
+      // Merchants can read any card via the cards_merchant_validate_read policy.
+      const { data: card, error: cardError } = await client
+        .from('cards')
+        .select('status, expires_at')
+        .eq('id', cardId)
+        .maybeSingle();
+
+      if (cardError || !card) {
+        return fail(ctx, 'CARD_NOT_FOUND', {
+          detail: { cardId, error: cardError?.message },
+        });
+      }
+
+      if (!isCardRedeemable(card.status, card.expires_at)) {
+        return fail(ctx, 'CARD_NOT_REDEEMABLE', {
+          detail: { cardId, status: card.status, expiresAt: card.expires_at },
         });
       }
 
@@ -282,14 +319,9 @@ export const validateCard = enhanceAction(
         };
       }
 
-      // Check card status and expiration
-      const now = new Date();
-      const nowIso = now.toISOString();
-      const isExpired =
-        card.status === 'expired' ||
-        (card.expiresAt !== null && new Date(card.expiresAt) < now);
-
-      const isActive = card.status === 'activated' && !isExpired;
+      // Card status + expiration — same rule as the redemption write gate.
+      const nowIso = new Date().toISOString();
+      const isActive = isCardRedeemable(card.status, card.expiresAt);
 
       // Get merchant's active discount
       const { data: discount } = await client

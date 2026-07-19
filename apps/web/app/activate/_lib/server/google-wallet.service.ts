@@ -163,6 +163,15 @@ export function buildGenericObject(
     id: `${config.issuerId}.${input.cardCode}`,
     classId: config.classId,
     state: 'ACTIVE',
+    // R0 — native expiry so Google Wallet greys the pass once the card lapses,
+    // with no server push. Extensions re-issue with a later end date.
+    ...(input.expiresAt
+      ? {
+          validTimeInterval: {
+            end: { date: new Date(input.expiresAt).toISOString() },
+          },
+        }
+      : {}),
     logo: {
       sourceUri: { uri: config.logoUrl },
       contentDescription: {

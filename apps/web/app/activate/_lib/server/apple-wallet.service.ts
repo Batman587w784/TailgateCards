@@ -166,6 +166,12 @@ export async function buildPassForCard({
         backgroundColor: WALLET_PASS_COLORS.background,
         foregroundColor: WALLET_PASS_COLORS.foreground,
         labelColor: WALLET_PASS_COLORS.label,
+        // R0 — native expiry so the pass self-greys in Apple Wallet once the
+        // card lapses, with no server push. Updated passes (extensions) still
+        // re-issue with the new date via the wallet web service.
+        ...(expiresAt
+          ? { expirationDate: new Date(expiresAt).toISOString() }
+          : {}),
         ...(canUpdate
           ? {
               webServiceURL: new URL(

@@ -11,6 +11,8 @@
 export type RedemptionErrorCode =
   | 'NOT_AUTHENTICATED'
   | 'MERCHANT_ACCESS_DENIED'
+  | 'CARD_NOT_FOUND'
+  | 'CARD_NOT_REDEEMABLE'
   | 'DISCOUNT_NOT_FOUND'
   | 'DISCOUNT_MERCHANT_MISMATCH'
   | 'DISCOUNT_INACTIVE'
@@ -25,6 +27,9 @@ export type ValidateCardErrorCode =
 const REDEMPTION_MESSAGES: Record<RedemptionErrorCode, string> = {
   NOT_AUTHENTICATED: 'Your session has expired. Please sign in and try again.',
   MERCHANT_ACCESS_DENIED: 'You do not have access to this merchant account.',
+  CARD_NOT_FOUND: 'No card matches that code.',
+  CARD_NOT_REDEEMABLE:
+    'This card has expired or is not active, so it can’t be used.',
   DISCOUNT_NOT_FOUND: 'This discount could not be found.',
   DISCOUNT_MERCHANT_MISMATCH: 'This discount does not belong to your business.',
   DISCOUNT_INACTIVE: 'This discount is no longer active.',
