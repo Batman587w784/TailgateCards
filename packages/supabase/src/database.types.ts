@@ -1581,6 +1581,7 @@ export type Database = {
           district_id: string | null
           id: string
           is_active: boolean
+          nonprofit_cents_per_card: number | null
           organization_name: string | null
           organization_type: string | null
           primary_contact_email: string | null
@@ -1602,6 +1603,7 @@ export type Database = {
           district_id?: string | null
           id?: string
           is_active?: boolean
+          nonprofit_cents_per_card?: number | null
           organization_name?: string | null
           organization_type?: string | null
           primary_contact_email?: string | null
@@ -1623,6 +1625,7 @@ export type Database = {
           district_id?: string | null
           id?: string
           is_active?: boolean
+          nonprofit_cents_per_card?: number | null
           organization_name?: string | null
           organization_type?: string | null
           primary_contact_email?: string | null
@@ -3171,6 +3174,10 @@ export type Database = {
       org_in_my_district: {
         Args: { target_org_account_id: string }
         Returns: boolean
+      }
+      org_net_cents_per_card: {
+        Args: { p_org_account_id: string }
+        Returns: number
       }
       org_profile_readable_by_cardholder: {
         Args: { target_org_id: string }
