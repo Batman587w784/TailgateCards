@@ -192,6 +192,18 @@ const PrizeTierFieldsSchema = z.object({
 
 const CreatePrizeTierSchema = PrizeTierFieldsSchema.extend({
   districtId: z.string().uuid(),
+  // All three scopes are creatable (decision #12): district-collective,
+  // top-chapter, top-individual — all anchored to the district.
+  scope: z.enum(['district', 'chapter', 'individual']).default('district'),
+});
+
+const SetCompetitionWindowSchema = z.object({
+  districtId: z.string().uuid(),
+  startDate: z.string().min(1), // ISO date (YYYY-MM-DD)
+  days: z.coerce
+    .number()
+    .int()
+    .refine((v) => [30, 40, 60].includes(v), 'Window must be 30, 40, or 60 days'),
 });
 
 const UpdatePrizeTierSchema = PrizeTierFieldsSchema.extend({
@@ -223,7 +235,7 @@ export const createPrizeTierAction = enhanceAction(
 
     const admin = getSupabaseServerAdminClient();
     const { error } = await admin.from('prize_tiers').insert({
-      scope: 'district',
+      scope: data.scope,
       district_id: data.districtId,
       name: data.name,
       description: data.description || null,
@@ -283,4 +295,42 @@ export const deletePrizeTierAction = enhanceAction(
     return { success: true as const };
   },
   { schema: z.object({ tierId: z.string().uuid() }) },
+);
+
+// ── M2.5 #14: competition window (start + 30/40/60 days) in districts.config ──
+export const setCompetitionWindowAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const admin = getSupabaseServerAdminClient();
+
+    // Merge into the existing config jsonb (don't clobber other keys).
+    const { data: row } = await admin
+      .from('districts')
+      .select('config')
+      .eq('id', data.districtId)
+      .single();
+
+    const existing =
+      row?.config && typeof row.config === 'object' && !Array.isArray(row.config)
+        ? (row.config as Record<string, unknown>)
+        : {};
+
+    const config = {
+      ...existing,
+      competition_start: data.startDate,
+      competition_days: data.days,
+    };
+
+    const { error } = await admin
+      .from('districts')
+      .update({ config })
+      .eq('id', data.districtId);
+
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: SetCompetitionWindowSchema },
 );

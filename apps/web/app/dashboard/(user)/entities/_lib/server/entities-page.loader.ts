@@ -295,6 +295,7 @@ export type DistrictWithStats = {
   logo_url: string | null;
   standardize_logos: boolean;
   fundraiser_enabled: boolean;
+  config: unknown;
   created_at: string | null;
   total_revenue: number;
   chapter_count: number;
@@ -345,7 +346,7 @@ export async function loadDistricts(
   let queryBuilder = client
     .from('districts')
     .select(
-      'id, name, district_type, naming_preset, is_active, state, city, share_slug, logo_url, standardize_logos, fundraiser_enabled, created_at',
+      'id, name, district_type, naming_preset, is_active, state, city, share_slug, logo_url, standardize_logos, fundraiser_enabled, config, created_at',
     )
     .order(sortColumn, { ascending: sortOrder === 'asc' });
 

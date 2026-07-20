@@ -49,6 +49,8 @@ import {
   updateCampusAction,
 } from '../_lib/server/districts-server-actions';
 import { uploadDistrictLogo } from '../_lib/utils/upload-district-logo';
+import { parseCompetitionWindow } from '~/lib/competition';
+
 import { BusinessLogoUpload } from './business-logo-upload';
 import { CityAutocomplete } from './city-autocomplete';
 import { PrizeTiersManager } from './prize-tiers-manager';
@@ -311,6 +313,7 @@ export function DistrictDetailsModal({
               <PrizeTiersManager
                 districtId={district.id}
                 fundraiserEnabled={district.fundraiser_enabled}
+                initialWindow={parseCompetitionWindow(district.config)}
               />
             </div>
 
