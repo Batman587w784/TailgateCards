@@ -174,3 +174,113 @@ export const getDistrictChaptersAction = enhanceAction(
   },
   { schema: z.object({ districtId: z.string().uuid() }) },
 );
+
+// ── M2.5-a: prize tiers (super-admin managed, district-scoped) ────────────────
+
+const ToggleDistrictFundraiserSchema = z.object({
+  districtId: z.string().uuid(),
+  enabled: z.boolean(),
+});
+
+const PrizeTierFieldsSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  description: z.string().trim().optional(),
+  imageUrl: z.string().url().optional().or(z.literal('')),
+  thresholdCards: z.coerce.number().int().min(0),
+  displayOrder: z.coerce.number().int().min(0).optional(),
+});
+
+const CreatePrizeTierSchema = PrizeTierFieldsSchema.extend({
+  districtId: z.string().uuid(),
+});
+
+const UpdatePrizeTierSchema = PrizeTierFieldsSchema.extend({
+  tierId: z.string().uuid(),
+  isActive: z.boolean().optional(),
+});
+
+export const toggleDistrictFundraiserAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const admin = getSupabaseServerAdminClient();
+    const { error } = await admin
+      .from('districts')
+      .update({ fundraiser_enabled: data.enabled })
+      .eq('id', data.districtId);
+
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: ToggleDistrictFundraiserSchema },
+);
+
+export const createPrizeTierAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const admin = getSupabaseServerAdminClient();
+    const { error } = await admin.from('prize_tiers').insert({
+      scope: 'district',
+      district_id: data.districtId,
+      name: data.name,
+      description: data.description || null,
+      image_url: data.imageUrl || null,
+      threshold_cards: data.thresholdCards,
+      display_order: data.displayOrder ?? 0,
+    });
+
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: CreatePrizeTierSchema },
+);
+
+export const updatePrizeTierAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const admin = getSupabaseServerAdminClient();
+    const { error } = await admin
+      .from('prize_tiers')
+      .update({
+        name: data.name,
+        description: data.description || null,
+        image_url: data.imageUrl || null,
+        threshold_cards: data.thresholdCards,
+        ...(data.displayOrder !== undefined
+          ? { display_order: data.displayOrder }
+          : {}),
+        ...(data.isActive !== undefined ? { is_active: data.isActive } : {}),
+      })
+      .eq('id', data.tierId);
+
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: UpdatePrizeTierSchema },
+);
+
+export const deletePrizeTierAction = enhanceAction(
+  async (data) => {
+    await requireSuperAdminAndGetUserId();
+
+    const admin = getSupabaseServerAdminClient();
+    const { error } = await admin
+      .from('prize_tiers')
+      .delete()
+      .eq('id', data.tierId);
+
+    if (error) return { success: false as const, error: error.message };
+
+    revalidatePath('/dashboard/entities');
+    return { success: true as const };
+  },
+  { schema: z.object({ tierId: z.string().uuid() }) },
+);

@@ -51,6 +51,7 @@ import {
 import { uploadDistrictLogo } from '../_lib/utils/upload-district-logo';
 import { BusinessLogoUpload } from './business-logo-upload';
 import { CityAutocomplete } from './city-autocomplete';
+import { PrizeTiersManager } from './prize-tiers-manager';
 import { StateAutocomplete } from './state-autocomplete';
 
 const FormSchema = z.object({
@@ -300,6 +301,17 @@ export function DistrictDetailsModal({
                   campus&apos;s logo instead of their own.
                 </span>
               </label>
+            </div>
+
+            <Separator />
+
+            {/* M2.5-a: prize-tier fundraiser (super-admin only). */}
+            <div className="flex flex-col gap-2">
+              <Label>Prize tiers (fundraiser)</Label>
+              <PrizeTiersManager
+                districtId={district.id}
+                fundraiserEnabled={district.fundraiser_enabled}
+              />
             </div>
 
             <Separator />

@@ -985,6 +985,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           district_type: Database["public"]["Enums"]["district_type"]
+          fundraiser_enabled: boolean
           id: string
           is_active: boolean
           logo_url: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           district_type?: Database["public"]["Enums"]["district_type"]
+          fundraiser_enabled?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -1019,6 +1021,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           district_type?: Database["public"]["Enums"]["district_type"]
+          fundraiser_enabled?: boolean
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -1666,6 +1669,62 @@ export type Database = {
           },
           {
             foreignKeyName: "organization_profiles_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "districts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prize_tiers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_order: number
+          district_id: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          scope: Database["public"]["Enums"]["prize_scope"]
+          threshold_cards: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          district_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          scope?: Database["public"]["Enums"]["prize_scope"]
+          threshold_cards: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          district_id?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          scope?: Database["public"]["Enums"]["prize_scope"]
+          threshold_cards?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_tiers_district_id_fkey"
             columns: ["district_id"]
             isOneToOne: false
             referencedRelation: "districts"
@@ -3400,6 +3459,7 @@ export type Database = {
         | "distributor"
         | "merchant"
         | "district_admin"
+      prize_scope: "district" | "chapter" | "individual"
       redemption_status: "completed" | "refunded"
       subscription_item_type: "flat" | "per_seat" | "metered"
       subscription_status:
@@ -4132,6 +4192,7 @@ export const Constants = {
         "merchant",
         "district_admin",
       ],
+      prize_scope: ["district", "chapter", "individual"],
       redemption_status: ["completed", "refunded"],
       subscription_item_type: ["flat", "per_seat", "metered"],
       subscription_status: [
