@@ -1,11 +1,14 @@
+import { getSupabaseServerClient } from '@kit/supabase/server-client';
 import { PageBody } from '@kit/ui/page';
 import { Trans } from '@kit/ui/trans';
 
+import appConfig from '~/config/app.config';
 import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
 import { withI18n } from '~/lib/i18n/with-i18n';
 
 // local imports
 import { CardholderDashboard } from './_components/cardholder/cardholder-dashboard';
+import { CompetitionHome } from './_components/competition-home';
 import { DistrictAdminDashboard } from './_components/district-admin/district-admin-dashboard';
 import { DistributorDashboard } from './_components/distributor/distributor-dashboard';
 import { HomeLayoutPageHeader } from './_components/home-page-header';
@@ -19,7 +22,9 @@ import { loadDistributorDashboard } from './_lib/server/distributor-dashboard.lo
 import { loadUserWorkspace } from './_lib/server/load-user-workspace';
 import { loadMerchantDashboard } from './_lib/server/merchant-page.loader';
 import { loadOrgAdminDashboard } from './_lib/server/org-admin-dashboard.loader';
+import { getUserOrganizationId } from './_lib/server/role-guards';
 import { loadSuperAdminDashboard } from './_lib/server/super-admin-dashboard.loader';
+import { loadMemberLeaderboard } from './leaderboard/_lib/server/leaderboard-page.loader';
 
 interface UserHomePageProps {
   searchParams: Promise<{
@@ -121,11 +126,18 @@ async function UserHomePage({ searchParams }: UserHomePageProps) {
 
   // Show organization admin dashboard for org_admin
   if (platformRole === 'org_admin') {
-    const orgAdminData = await loadOrgAdminDashboard({
-      dateFrom: params.from ?? undefined,
-      dateTo: params.to ?? undefined,
-      distributorIds: params.distributors?.split(',').filter(Boolean),
-    });
+    const leaderboardClient = getSupabaseServerClient();
+    const [orgAdminData, competition, workspace, orgId] = await Promise.all([
+      loadOrgAdminDashboard({
+        dateFrom: params.from ?? undefined,
+        dateTo: params.to ?? undefined,
+        distributorIds: params.distributors?.split(',').filter(Boolean),
+      }),
+      loadMemberLeaderboard(leaderboardClient),
+      loadUserWorkspace(),
+      getUserOrganizationId(),
+    ]);
+
     return (
       <div className="rounded-lg lg:m-4 lg:border">
         <HomeLayoutPageHeader
@@ -133,7 +145,16 @@ async function UserHomePage({ searchParams }: UserHomePageProps) {
           description={<Trans i18nKey={'common:homeTabDescription'} />}
         />
 
-        <PageBody>
+        <PageBody className="space-y-6">
+          {workspace.orgShareSlug ? (
+            <CompetitionHome
+              data={competition}
+              role="org_admin"
+              viewerOrgId={orgId}
+              shareUrl={`${appConfig.url}/activate/o/${workspace.orgShareSlug}`}
+              inviteUrl="/dashboard/org-admin/distributors"
+            />
+          ) : null}
           <OrgAdminDashboard data={orgAdminData} />
         </PageBody>
       </div>
@@ -142,10 +163,16 @@ async function UserHomePage({ searchParams }: UserHomePageProps) {
 
   // Show distributor dashboard for distributors
   if (platformRole === 'distributor') {
-    const distributorData = await loadDistributorDashboard({
-      dateFrom: params.from ?? undefined,
-      dateTo: params.to ?? undefined,
-    });
+    const leaderboardClient = getSupabaseServerClient();
+    const [distributorData, competition, workspace] = await Promise.all([
+      loadDistributorDashboard({
+        dateFrom: params.from ?? undefined,
+        dateTo: params.to ?? undefined,
+      }),
+      loadMemberLeaderboard(leaderboardClient),
+      loadUserWorkspace(),
+    ]);
+
     return (
       <div className="rounded-lg lg:m-4 lg:border">
         <HomeLayoutPageHeader
@@ -153,7 +180,15 @@ async function UserHomePage({ searchParams }: UserHomePageProps) {
           description={<Trans i18nKey={'common:homeTabDescription'} />}
         />
 
-        <PageBody>
+        <PageBody className="space-y-6">
+          {workspace.distributorShareSlug ? (
+            <CompetitionHome
+              data={competition}
+              role="distributor"
+              viewerOrgId={competition.position?.org_account_id ?? null}
+              shareUrl={`${appConfig.url}/activate/d/${workspace.distributorShareSlug}`}
+            />
+          ) : null}
           <DistributorDashboard data={distributorData} />
         </PageBody>
       </div>

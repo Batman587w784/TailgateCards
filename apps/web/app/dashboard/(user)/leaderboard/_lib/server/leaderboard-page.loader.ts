@@ -73,6 +73,8 @@ export interface MemberLeaderboardData {
   // Provisional-crown prize names (M2.5-c), null when no such tier exists.
   chapterPrize: string | null;
   individualPrize: string | null;
+  // The district's next collective unlock (M2.5-e share copy), null if none/all hit.
+  nextPrize: string | null;
 }
 
 /**
@@ -142,6 +144,7 @@ export async function loadMemberLeaderboard(
       membersScope,
       chapterPrize: null,
       individualPrize: null,
+      nextPrize: null,
     };
   }
 
@@ -160,7 +163,14 @@ export async function loadMemberLeaderboard(
   const ladder = ladderRes.data as {
     chapter_prize: string | null;
     individual_prize: string | null;
+    total_cards: number;
+    tiers: { name: string; threshold_cards: number }[];
   } | null;
+
+  // The next collective unlock = the lowest-threshold district tier not yet hit.
+  const nextPrize =
+    ladder?.tiers?.find((t) => (ladder.total_cards ?? 0) < t.threshold_cards)
+      ?.name ?? null;
 
   return {
     position,
@@ -170,5 +180,6 @@ export async function loadMemberLeaderboard(
     membersScope,
     chapterPrize: ladder?.chapter_prize ?? null,
     individualPrize: ladder?.individual_prize ?? null,
+    nextPrize,
   };
 }
