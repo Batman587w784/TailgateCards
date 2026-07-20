@@ -3,6 +3,10 @@
     {
       "path": "/api/wallet/sync",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/groupme/drop",
+      "schedule": "0 17 * * *"
     }
   ]
 }
