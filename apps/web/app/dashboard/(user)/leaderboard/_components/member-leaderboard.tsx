@@ -14,6 +14,7 @@ import { Progress } from '@kit/ui/progress';
 import { formatUsdFromCents } from '~/lib/currency';
 import { getHierarchyLabels } from '~/lib/naming';
 
+import { PrizeLadder } from '../../_components/prize-ladder';
 import type { MemberLeaderboardData } from '../_lib/server/leaderboard-page.loader';
 
 function GoalProgress({ progress }: { progress: number | null }) {
@@ -112,6 +113,9 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* M2.5-b: prize ladder + countdown (only renders if a fundraiser is on). */}
+      <PrizeLadder districtId={summary.district_id} />
+
       {/* Campus total (+ my rank, members only) */}
       <div className={`grid gap-4 ${position ? 'md:grid-cols-2' : ''}`}>
         <Card>

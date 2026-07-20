@@ -2896,6 +2896,7 @@ export type Database = {
           organization_name: string
         }[]
       }
+      get_district_ladder: { Args: { p_district_id: string }; Returns: Json }
       get_district_leaderboard: {
         Args: {
           limit_count?: number
