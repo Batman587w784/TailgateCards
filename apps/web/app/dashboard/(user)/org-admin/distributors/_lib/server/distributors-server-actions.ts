@@ -20,6 +20,7 @@ import {
   DeleteDistributorSchema,
   InviteDistributorSchema,
   ToggleDistributorStatusSchema,
+  UpdateDistributorNameSchema,
 } from '../schemas/distributor.schema';
 
 export const inviteDistributorAction = orgAdminAction(
@@ -147,6 +148,47 @@ export const inviteDistributorAction = orgAdminAction(
       return { success: true };
     },
     { schema: InviteDistributorSchema },
+  ),
+);
+
+export const updateDistributorNameAction = orgAdminAction(
+  enhanceAction(
+    async (data) => {
+      const client = getSupabaseServerClient();
+      const orgId = await getUserOrganizationId();
+
+      if (!orgId) {
+        throw new Error('Organization not found');
+      }
+
+      // Verify the distributor belongs to this org before updating.
+      const { data: distributor, error: verifyError } = await client
+        .from('distributors_view')
+        .select('id')
+        .eq('id', data.distributorId)
+        .eq('organization_id', orgId)
+        .single();
+
+      if (verifyError || !distributor) {
+        throw new Error('Distributor not found in your organization');
+      }
+
+      // accounts.name is guarded by kit.protect_account_fields for the
+      // authenticated role, so the write goes through the admin client (authz
+      // is already established by the role gate + org-membership check above).
+      const adminClient = getSupabaseServerAdminClient();
+      const { error } = await adminClient
+        .from('accounts')
+        .update({ name: data.name })
+        .eq('id', data.distributorId);
+
+      if (error) throw error;
+
+      revalidatePath('/dashboard/org-admin/distributors');
+
+      return { success: true as const };
+    },
+    { schema: UpdateDistributorNameSchema },
   ),
 );
 

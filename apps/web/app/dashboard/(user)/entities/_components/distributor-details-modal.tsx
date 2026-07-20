@@ -6,6 +6,8 @@ import {
   CalendarDays,
   GalleryVerticalEnd,
   Mail,
+  Pencil,
+  Save,
   TicketPercent,
   WalletCards,
 } from 'lucide-react';
@@ -18,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@kit/ui/dialog';
+import { Input } from '@kit/ui/input';
 import { Separator } from '@kit/ui/separator';
 import { toast } from '@kit/ui/sonner';
 import { Switch } from '@kit/ui/switch';
@@ -32,16 +35,46 @@ interface DistributorDetailsModalProps {
   distributor: DistributorAccount;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Role-correct name save. Defaults to the super-admin action (entities
+   * screen); the org-admin distributors page passes its own org-scoped action.
+   */
+  onSaveName?: (name: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export function DistributorDetailsModal({
   distributor,
   open,
   onOpenChange,
+  onSaveName,
 }: DistributorDetailsModalProps) {
   const [pending, startTransition] = useTransition();
   const [resendPending, startResendTransition] = useTransition();
   const [isActive, setIsActive] = useState(distributor.is_active);
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(distributor.name ?? '');
+
+  const handleSaveName = () => {
+    startTransition(async () => {
+      try {
+        const result = onSaveName
+          ? await onSaveName(name.trim())
+          : await updateDistributorAction({
+              accountId: distributor.id,
+              name: name.trim(),
+            });
+
+        if (result.success) {
+          toast.success('Name updated');
+          setIsEditing(false);
+        } else {
+          toast.error('Failed to update name');
+        }
+      } catch {
+        toast.error('Failed to update name');
+      }
+    });
+  };
 
   const handleStatusChange = (checked: boolean) => {
     setIsActive(checked);
@@ -106,20 +139,55 @@ export function DistributorDetailsModal({
         </DialogHeader>
 
         <div className="rounded-lg border p-6">
-          {/* Identity row */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-brand text-lg">
-              <span className="font-semibold">{distributor.name}</span>
-              {distributor.organization_name && (
-                <span> - {distributor.organization_name}</span>
+          {/* Identity row — name is editable (fixes nameless self-signups). */}
+          <div className="flex items-center justify-between gap-2">
+            {isEditing ? (
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Member name"
+                className="text-lg font-semibold"
+                data-test="distributor-name-input"
+              />
+            ) : (
+              <h3 className="text-brand text-lg">
+                <span className="font-semibold">
+                  {distributor.name || 'Unnamed member'}
+                </span>
+                {distributor.organization_name && (
+                  <span> - {distributor.organization_name}</span>
+                )}
+              </h3>
+            )}
+            <div className="flex shrink-0 gap-2">
+              {isEditing ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pending || !name.trim()}
+                  onClick={handleSaveName}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {pending ? 'Saving...' : 'Save'}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  data-test="distributor-edit-name"
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit name
+                </Button>
               )}
-            </h3>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={resendPending}
-              onClick={() => {
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={resendPending}
+                onClick={() => {
                 startResendTransition(async () => {
                   try {
                     const result = await resendEntityInviteAction({
@@ -142,9 +210,10 @@ export function DistributorDetailsModal({
                 });
               }}
             >
-              <Mail className="mr-2 h-4 w-4" />
-              {resendPending ? 'Sending...' : 'Resend Invite'}
-            </Button>
+                <Mail className="mr-2 h-4 w-4" />
+                {resendPending ? 'Sending...' : 'Resend Invite'}
+              </Button>
+            </div>
           </div>
 
           {/* Metrics grid */}

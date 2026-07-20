@@ -17,7 +17,10 @@ import type { DistributorAccount } from '../../../entities/_lib/server/entities-
 import { BulkAssignModal } from '../../cards/_components/bulk-assign-modal';
 import type { DistributorOption } from '../_lib/server/distributors-page.loader';
 import { OrgDistributor } from '../_lib/server/distributors-page.loader';
-import { toggleDistributorStatusAction } from '../_lib/server/distributors-server-actions';
+import {
+  toggleDistributorStatusAction,
+  updateDistributorNameAction,
+} from '../_lib/server/distributors-server-actions';
 import { AddDistributorForm } from './add-distributor-form';
 import { DistributorTile } from './distributor-tile';
 
@@ -134,6 +137,15 @@ export function DistributorsPage({
           distributor={toDistributorAccount(selectedDistributor)}
           open={modalOpen}
           onOpenChange={setModalOpen}
+          onSaveName={async (name) => {
+            // The action throws on failure (org gate / verify), which the modal
+            // surfaces as an error toast.
+            await updateDistributorNameAction({
+              distributorId: selectedDistributor.id,
+              name,
+            });
+            return { success: true as const };
+          }}
         />
       )}
 

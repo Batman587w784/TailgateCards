@@ -206,6 +206,7 @@ export type CreateDistributorSchemaType = z.infer<
 
 export const UpdateDistributorSchema = z.object({
   accountId: z.string().uuid('Invalid account ID'),
+  name: z.string().trim().min(1, 'Name is required').optional(),
   phone: z.string().optional(),
   isActive: z.boolean().optional(),
 });

@@ -744,6 +744,9 @@ class AdminEntitiesService {
   async updateDistributor(data: UpdateDistributorSchemaType) {
     const updateData: Record<string, unknown> = {};
 
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
     if (data.phone !== undefined) {
       updateData.phone = data.phone;
     }
