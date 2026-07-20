@@ -1035,6 +1035,77 @@ export type Database = {
         }
         Relationships: []
       }
+      groupme_connections: {
+        Row: {
+          bot_id: string
+          connected_by: string | null
+          created_at: string
+          group_id: string
+          group_name: string | null
+          id: string
+          last_posted_at: string | null
+          organization_id: string
+          token_secret_id: string | null
+          updated_at: string
+          weekly_enabled: boolean
+        }
+        Insert: {
+          bot_id: string
+          connected_by?: string | null
+          created_at?: string
+          group_id: string
+          group_name?: string | null
+          id?: string
+          last_posted_at?: string | null
+          organization_id: string
+          token_secret_id?: string | null
+          updated_at?: string
+          weekly_enabled?: boolean
+        }
+        Update: {
+          bot_id?: string
+          connected_by?: string | null
+          created_at?: string
+          group_id?: string
+          group_name?: string | null
+          id?: string
+          last_posted_at?: string | null
+          organization_id?: string
+          token_secret_id?: string | null
+          updated_at?: string
+          weekly_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupme_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupme_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "distributors_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupme_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "user_account_workspace"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupme_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "user_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           account_id: string
@@ -2960,6 +3031,10 @@ export type Database = {
         Args: { p_member_account_id?: string; p_org_account_id: string }
         Returns: Json
       }
+      get_groupme_connection_status: {
+        Args: { p_org_id: string }
+        Returns: Json
+      }
       get_merchant_active_discounts: {
         Args: { merchant_account_id: string }
         Returns: number
@@ -3162,6 +3237,11 @@ export type Database = {
       get_user_personal_account_id: { Args: never; Returns: string }
       get_user_platform_role: {
         Args: { target_user_id?: string }
+        Returns: string
+      }
+      groupme_read_token: { Args: { p_secret_id: string }; Returns: string }
+      groupme_store_token: {
+        Args: { p_org_id: string; p_token: string }
         Returns: string
       }
       has_active_subscription: {
