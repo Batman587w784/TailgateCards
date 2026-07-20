@@ -2735,6 +2735,7 @@ export type Database = {
           goal_progress: number
           goal_target_cards: number
           goal_target_cents: number
+          logo_url: string
           org_account_id: string
           rank: number
         }[]

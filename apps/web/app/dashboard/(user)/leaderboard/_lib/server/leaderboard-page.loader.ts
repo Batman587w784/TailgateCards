@@ -39,6 +39,7 @@ export interface ChapterRow {
   rank: number;
   org_account_id: string;
   chapter_name: string;
+  logo_url: string | null;
   cards_sold: number;
   dollars_raised_cents: number;
   goal_target_cards: number | null;

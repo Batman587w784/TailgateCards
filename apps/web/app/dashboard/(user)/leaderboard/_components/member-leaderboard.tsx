@@ -14,6 +14,7 @@ import { Progress } from '@kit/ui/progress';
 import { formatUsdFromCents } from '~/lib/currency';
 import { getHierarchyLabels } from '~/lib/naming';
 
+import { ChapterAvatar } from '../../_components/chapter-avatar';
 import { PrizeLadder } from '../../_components/prize-ladder';
 import type { MemberLeaderboardData } from '../_lib/server/leaderboard-page.loader';
 
@@ -41,15 +42,19 @@ interface Row {
   cards_sold: number;
   goal_progress: number | null;
   highlight?: boolean;
+  logoUrl?: string | null;
 }
 
 function LeaderboardTable({
   rows,
   crownPrize,
+  avatars = false,
 }: {
   rows: Row[];
   /** The prize the #1 is provisionally winning (top-chapter / top-individual). */
   crownPrize?: string | null;
+  /** Show a chapter logo / Greek-letter monogram per row (chapter board). */
+  avatars?: boolean;
 }) {
   if (rows.length === 0) {
     return <p className="text-muted-foreground text-sm">No standings yet.</p>;
@@ -74,6 +79,13 @@ function LeaderboardTable({
           <span className="text-muted-foreground w-7 text-sm font-semibold tabular-nums">
             #{row.rank}
           </span>
+          {avatars && (
+            <ChapterAvatar
+              name={row.label}
+              logoUrl={row.logoUrl}
+              className="h-8 w-8"
+            />
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-1.5">
@@ -202,9 +214,11 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
         <CardContent>
           <LeaderboardTable
             crownPrize={chapterPrize}
+            avatars
             rows={chapters.map((c) => ({
               rank: c.rank,
               label: c.chapter_name,
+              logoUrl: c.logo_url,
               dollars_raised_cents: c.dollars_raised_cents,
               cards_sold: c.cards_sold,
               goal_progress: c.goal_progress,
