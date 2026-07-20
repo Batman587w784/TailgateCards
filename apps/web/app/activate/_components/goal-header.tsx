@@ -231,6 +231,14 @@ export function GoalHeader({
           </div>
         </div>
       ) : null}
+
+      {/* M2.5-f / §8: an org (general) link has no member — say so plainly. */}
+      {!distributorId ? (
+        <p className="text-muted-foreground text-xs">
+          Chapter link — your purchase supports {orgName} but isn&apos;t credited
+          to a specific member.
+        </p>
+      ) : null}
     </div>
   );
 }

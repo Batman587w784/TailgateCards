@@ -2897,6 +2897,15 @@ export type Database = {
           organization_name: string
         }[]
       }
+      get_district_chapter_picker: {
+        Args: { p_share_slug: string }
+        Returns: {
+          logo_url: string
+          name: string
+          org_account_id: string
+          slug: string
+        }[]
+      }
       get_district_ladder: { Args: { p_district_id: string }; Returns: Json }
       get_district_leaderboard: {
         Args: {
