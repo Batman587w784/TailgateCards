@@ -69,6 +69,9 @@ export interface MemberLeaderboardData {
   chapters: ChapterRow[];
   members: MemberRow[];
   membersScope: MembersScope;
+  // Provisional-crown prize names (M2.5-c), null when no such tier exists.
+  chapterPrize: string | null;
+  individualPrize: string | null;
 }
 
 /**
@@ -130,10 +133,18 @@ export async function loadMemberLeaderboard(
   }
 
   if (!districtId) {
-    return { position, summary: null, chapters: [], members: [], membersScope };
+    return {
+      position,
+      summary: null,
+      chapters: [],
+      members: [],
+      membersScope,
+      chapterPrize: null,
+      individualPrize: null,
+    };
   }
 
-  const [summaryRes, chaptersRes, membersRes] = await Promise.all([
+  const [summaryRes, chaptersRes, membersRes, ladderRes] = await Promise.all([
     client.rpc('get_campus_leaderboard_summary', { p_district_id: districtId }),
     client.rpc('get_campus_chapter_leaderboard', { p_district_id: districtId }),
     orgId
@@ -142,7 +153,13 @@ export async function loadMemberLeaderboard(
           p_district_id: districtId,
           p_limit: 100,
         }),
+    client.rpc('get_district_ladder', { p_district_id: districtId }),
   ]);
+
+  const ladder = ladderRes.data as {
+    chapter_prize: string | null;
+    individual_prize: string | null;
+  } | null;
 
   return {
     position,
@@ -150,5 +167,7 @@ export async function loadMemberLeaderboard(
     chapters: (chaptersRes.data as ChapterRow[] | null) ?? [],
     members: (membersRes.data as MemberRow[] | null) ?? [],
     membersScope,
+    chapterPrize: ladder?.chapter_prize ?? null,
+    individualPrize: ladder?.individual_prize ?? null,
   };
 }

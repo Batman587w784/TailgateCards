@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { Trophy } from 'lucide-react';
+import { Crown, Trophy } from 'lucide-react';
 
 import {
   Card,
@@ -43,12 +43,26 @@ interface Row {
   highlight?: boolean;
 }
 
-function LeaderboardTable({ rows }: { rows: Row[] }) {
+function LeaderboardTable({
+  rows,
+  crownPrize,
+}: {
+  rows: Row[];
+  /** The prize the #1 is provisionally winning (top-chapter / top-individual). */
+  crownPrize?: string | null;
+}) {
   if (rows.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm">No standings yet.</p>
-    );
+    return <p className="text-muted-foreground text-sm">No standings yet.</p>;
   }
+
+  // Provisional-crown caption for #1 (loss aversion, §1): name the real prize
+  // when one exists, otherwise fall back to the lead margin (decision #12).
+  const leadMargin = rows[0]!.cards_sold - (rows[1]?.cards_sold ?? 0);
+  const crownCaption = crownPrize
+    ? `On track to win ${crownPrize}`
+    : leadMargin > 0
+      ? `Currently #1 — ${leadMargin.toLocaleString()} ${leadMargin === 1 ? 'card' : 'cards'} ahead`
+      : 'Currently #1';
 
   return (
     <ul className="flex flex-col divide-y">
@@ -62,11 +76,23 @@ function LeaderboardTable({ rows }: { rows: Row[] }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-medium">{row.label}</span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                {row.rank === 1 && (
+                  <Crown className="h-4 w-4 shrink-0 text-amber-500" />
+                )}
+                <span className="truncate text-sm font-medium">
+                  {row.label}
+                </span>
+              </span>
               <span className="text-sm font-semibold tabular-nums">
                 {formatUsdFromCents(row.dollars_raised_cents)}
               </span>
             </div>
+            {row.rank === 1 && (
+              <p className="text-[11px] font-semibold text-amber-600">
+                {crownCaption}
+              </p>
+            )}
             <div className="mt-1 flex items-center gap-2">
               <span className="text-muted-foreground text-xs">
                 {row.cards_sold} sold
@@ -83,7 +109,15 @@ function LeaderboardTable({ rows }: { rows: Row[] }) {
 }
 
 export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
-  const { position, summary, chapters, members, membersScope } = data;
+  const {
+    position,
+    summary,
+    chapters,
+    members,
+    membersScope,
+    chapterPrize,
+    individualPrize,
+  } = data;
 
   // No campus context (member whose org isn't in a campus, or an admin with no
   // active campus yet).
@@ -167,6 +201,7 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
         </CardHeader>
         <CardContent>
           <LeaderboardTable
+            crownPrize={chapterPrize}
             rows={chapters.map((c) => ({
               rank: c.rank,
               label: c.chapter_name,
@@ -195,6 +230,10 @@ export function MemberLeaderboard({ data }: { data: MemberLeaderboardData }) {
         </CardHeader>
         <CardContent>
           <LeaderboardTable
+            // Top-individual prize only applies to the campus-wide member board
+            // (its #1 is the campus top individual); a single chapter's board
+            // falls back to the lead margin.
+            crownPrize={membersScope === 'campus' ? individualPrize : null}
             rows={members.map((m) => ({
               rank: m.rank,
               label: m.display_name,
