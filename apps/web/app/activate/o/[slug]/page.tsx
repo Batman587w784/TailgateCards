@@ -14,13 +14,8 @@ import {
 } from '../../_lib/server/card-activation.loader';
 import { detectPlatform } from '../../_lib/detect-platform';
 
-const ogImage = {
-  url: '/images/sales-link-og.png',
-  width: 2000,
-  height: 1000,
-  alt: 'Support your local organization and earn local discounts with a Tailgate digital card',
-};
-
+// Note: the OG/Twitter image is generated per-chapter by opengraph-image.tsx
+// (M2.5), so no static `images` here — a static one would override the dynamic.
 export const metadata: Metadata = {
   title: 'Get a Tailgate Digital Card',
   description:
@@ -29,14 +24,12 @@ export const metadata: Metadata = {
     title: 'Get a Tailgate Digital Card',
     description:
       'Support your local organization and earn discounts at local businesses with a Tailgate digital card.',
-    images: [ogImage],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Get a Tailgate Digital Card',
     description:
       'Support your local organization and earn discounts at local businesses with a Tailgate digital card.',
-    images: [ogImage.url],
   },
 };
 
