@@ -20,10 +20,7 @@ export interface GroupMeGroup {
   image_url: string | null;
 }
 
-async function groupmeJson<T>(
-  path: string,
-  init: RequestInit,
-): Promise<T> {
+async function groupmeJson<T>(path: string, init: RequestInit): Promise<T> {
   const res = await fetch(`${GROUPME_API}${path}`, {
     ...init,
     // GroupMe is an external service; never cache these calls.
@@ -31,7 +28,9 @@ async function groupmeJson<T>(
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
-    throw new Error(`GroupMe ${path} failed (${res.status}): ${detail.slice(0, 200)}`);
+    throw new Error(
+      `GroupMe ${path} failed (${res.status}): ${detail.slice(0, 200)}`,
+    );
   }
   const json = (await res.json()) as { response: T };
   return json.response;
@@ -89,6 +88,19 @@ export async function createBot(params: {
   const botId = bot.bot_id ?? bot.bot?.bot_id;
   if (!botId) throw new Error('GroupMe /bots returned no bot_id');
   return botId;
+}
+
+/** Remove a bot on disconnect (best-effort cleanup so it stops sitting in the group). */
+export async function destroyBot(token: string, botId: string): Promise<void> {
+  await fetch(`${GROUPME_API}/bots/destroy`, {
+    method: 'POST',
+    headers: {
+      'X-Access-Token': token,
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
+    body: JSON.stringify({ bot_id: botId }),
+  });
 }
 
 export interface BotPostResult {

@@ -9,7 +9,11 @@ import { getLogger } from '@kit/shared/logger';
 import { getSupabaseServerAdminClient } from '@kit/supabase/server-admin-client';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 
-import { createBot, postBotMessage } from '~/lib/server/groupme-api';
+import {
+  createBot,
+  destroyBot,
+  postBotMessage,
+} from '~/lib/server/groupme-api';
 import { composeDrop } from '~/lib/server/groupme-drop';
 import {
   GROUPME_PENDING_COOKIE,
@@ -102,5 +106,59 @@ export const selectGroupAction = orgAdminAction(
       return { success: true as const, groupName: data.groupName };
     },
     { schema: SelectGroupSchema },
+  ),
+);
+
+const ToggleWeeklySchema = z.object({ enabled: z.boolean() });
+
+// Chapter-mutable cadence switch (#10) — pause/resume the weekly drop.
+export const toggleWeeklyAction = orgAdminAction(
+  enhanceAction(
+    async (data) => {
+      const orgId = await getUserOrganizationId();
+      if (!orgId) return { success: false as const };
+
+      const admin = getSupabaseServerAdminClient();
+      const { error } = await admin
+        .from('groupme_connections')
+        .update({ weekly_enabled: data.enabled })
+        .eq('organization_id', orgId);
+
+      return { success: !error };
+    },
+    { schema: ToggleWeeklySchema },
+  ),
+);
+
+// Disconnect: remove our bot from GroupMe (best-effort) and drop the connection.
+export const disconnectAction = orgAdminAction(
+  enhanceAction(
+    async () => {
+      const orgId = await getUserOrganizationId();
+      if (!orgId) return { success: false as const };
+
+      const admin = getSupabaseServerAdminClient();
+      const { data: conn } = await admin
+        .from('groupme_connections')
+        .select('bot_id, token_secret_id')
+        .eq('organization_id', orgId)
+        .maybeSingle();
+
+      if (conn?.token_secret_id && conn.bot_id) {
+        const { data: token } = await admin.rpc('groupme_read_token', {
+          p_secret_id: conn.token_secret_id,
+        });
+        if (token) await destroyBot(token, conn.bot_id);
+      }
+
+      const { error } = await admin
+        .from('groupme_connections')
+        .delete()
+        .eq('organization_id', orgId);
+
+      // REVIEW: the vault secret is left in place; a reconnect overwrites it by name.
+      return { success: !error };
+    },
+    { schema: z.object({}) },
   ),
 );
